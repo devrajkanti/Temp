@@ -34,3 +34,7 @@ Select-Object -First 1 TimeCreated
 Get-ItemProperty `
 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI' `
 | Select-Object LastLoggedOnUser
+
+
+
+
