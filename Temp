@@ -70,5 +70,12 @@ Get-WinEvent -LogName "Microsoft-Windows-TerminalServices-LocalSessionManager/Op
 Sort-Object TimeCreated -Descending |
 Select-Object -First 20 TimeCreated, Id, Message
 
+##################
 
+$lastRdpAccess = Get-WinEvent -LogName "Microsoft-Windows-TerminalServices-LocalSessionManager/Operational" |
+    Where-Object {$_.Id -eq 21} |
+    Sort-Object TimeCreated -Descending |
+    Select-Object -First 1
+
+$lastRdpAccess.TimeCreated
 
