@@ -64,4 +64,11 @@ Get-WinEvent -LogName "Microsoft-Windows-TerminalServices-LocalSessionManager/Op
 Select-Object -First 20 TimeCreated, Id, Message
 
 
+===========================================
+
+Get-WinEvent -LogName "Microsoft-Windows-TerminalServices-LocalSessionManager/Operational" |
+Sort-Object TimeCreated -Descending |
+Select-Object -First 20 TimeCreated, Id, Message
+
+
 
