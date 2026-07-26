@@ -1,0 +1,42 @@
+TimeCreated          Id Message
+-----------          -- -------
+7/26/2026 7:58:04 PM 22 Remote Desktop Services: Shell start notification received:...
+7/26/2026 7:58:03 PM 21 Remote Desktop Services: Session logon succeeded:...
+7/26/2026 7:58:03 PM 42 End session arbitration:...
+7/26/2026 7:58:03 PM 41 Begin session arbitration:...
+7/26/2026 7:46:49 PM 32 Plugin RDSAppXPlugin has been successfully initialized
+7/26/2026 7:36:05 PM 59 RpcGetCurrentSessionCapabilities from C:\Windows\system32\svchost.exe -k netsvcs -s CertPropSvc( #0x0/0x5860 )
+7/26/2026 7:36:05 PM 59 RpcGetCurrentSessionCapabilities from C:\Windows\system32\svchost.exe -k netsvcs -s CertPropSvc( #0x0/0x5860 )
+7/26/2026 7:36:05 PM 59 RpcGetCurrentSessionCapabilities from C:\Windows\system32\svchost.exe -k netsvcs -s CertPropSvc( #0x0/0x5860 )
+7/26/2026 7:36:05 PM 59 RpcGetCurrentSessionCapabilities from C:\Windows\system32\svchost.exe -k netsvcs -s CertPropSvc( #0x0/0x5860 )
+7/26/2026 7:36:05 PM 59 RpcGetCurrentSessionCapabilities from C:\Windows\system32\svchost.exe -k netsvcs -s CertPropSvc( #0x0/0x5860 )
+7/26/2026 7:36:05 PM 59 RpcGetCurrentSessionCapabilities from C:\Windows\system32\svchost.exe -k netsvcs -s CertPropSvc( #0x0/0x5860 )
+7/26/2026 7:34:27 PM 59 RpcGetCurrentSessionCapabilities from C:\Windows\system32\svchost.exe -k netsvcs -s CertPropSvc( #0x0/0x5860 )
+7/26/2026 7:34:27 PM 59 RpcGetCurrentSessionCapabilities from C:\Windows\system32\svchost.exe -k netsvcs -s CertPropSvc( #0x0/0x5860 )
+7/26/2026 7:34:27 PM 59 RpcGetCurrentSessionCapabilities from C:\Windows\system32\svchost.exe -k netsvcs -s CertPropSvc( #0x0/0x5860 )
+7/26/2026 7:34:27 PM 59 RpcGetCurrentSessionCapabilities from C:\Windows\system32\svchost.exe -k netsvcs -s CertPropSvc( #0x0/0x5860 )
+7/26/2026 7:34:27 PM 59 RpcGetCurrentSessionCapabilities from C:\Windows\system32\svchost.exe -k netsvcs -s CertPropSvc( #0x0/0x5860 )
+7/26/2026 7:33:05 PM 59 RpcGetCurrentSessionCapabilities from C:\Windows\system32\svchost.exe -k netsvcs( #0x0/0x5164 )
+7/26/2026 7:33:05 PM 59 RpcGetCurrentSessionCapabilities from C:\Windows\system32\svchost.exe -k netsvcs( #0x0/0x5164 )
+7/26/2026 7:31:05 PM 59 RpcGetCurrentSessionCapabilities from C:\Windows\system32\svchost.exe -k netsvcs( #0x0/0x5164 )
+7/26/2026 7:31:05 PM 59 RpcGetCurrentSessionCapabilities from C:\Windows\system32\svchost.exe -k netsvcs( #0x0/0x5164 )
+7/26/2026 7:29:06 PM 59 RpcGetCurrentSessionCapabilities from C:\Windows\system32\svchost.exe -k netsvcs( #0x0/0x5164 )
+7/26/2026 7:29:05 PM 59 RpcGetCurrentSessionCapabilities from C:\Windows\system32\svchost.exe -k netsvcs( #0x0/0x5164 )
+7/26/2026 7:29:05 PM 59 RpcGetCurrentSessionCapabilities from C:\Windows\system32\svchost.exe -k netsvcs( #0x0/0x5164 )
+7/26/2026 7:29:05 PM 59 RpcGetCurrentSessionCapabilities from C:\Windows\system32\svchost.exe -k netsvcs( #0x0/0x5164 )
+7/26/2026 7:29:05 PM 59 RpcGetCurrentSessionCapabilities from C:\Windows\system32\svchost.exe -k netsvcs( #0x0/0x5164 )
+7/26/2026 7:29:05 PM 59 RpcGetCurrentSessionCapabilities from C:\Windows\system32\svchost.exe -k netsvcs( #0x0/0x5164 )
+7/26/2026 7:29:05 PM 59 RpcGetCurrentSessionCapabilities from C:\Windows\system32\svchost.exe -k netsvcs( #0x0/0x5164 )
+7/26/2026 7:29:02 PM 22 Remote Desktop Services: Shell start notification received:...
+7/26/2026 7:29:01 PM 21 Remote Desktop Services: Session logon succeeded:...
+7/26/2026 7:29:00 PM 59 RpcGetCurrentSessionCapabilities from C:\Windows\system32\svchost.exe -k netsvcs -s CertPropSvc( #0x0/0x1948 )
+7/26/2026 7:29:00 PM 59 RpcGetCurrentSessionCapabilities from C:\Windows\system32\svchost.exe -k netsvcs -s CertPropSvc( #0x0/0x1948 )
+7/26/2026 7:29:00 PM 59 RpcGetCurrentSessionCapabilities from C:\Windows\system32\svchost.exe -k netsvcs -s CertPropSvc( #0x0/0x1948 )
+7/26/2026 7:29:00 PM 42 End session arbitration:...
+7/26/2026 7:29:00 PM 41 Begin session arbitration:...
+7/26/2026 7:24:39 PM 32 Plugin RDSAppXPlugin has been successfully initialized
+7/26/2026 6:38:27 PM 59 RpcGetCurrentSessionCapabilities from C:\Windows\system32\svchost.exe -k netsvcs -s CertPropSvc( #0x0/0x1060 )
+7/26/2026 6:38:27 PM 59 RpcGetCurrentSessionCapabilities from C:\Windows\system32\svchost.exe -k netsvcs -s CertPropSvc( #0x0/0x1060 )
+7/26/2026 6:38:27 PM 59 RpcGetCurrentSessionCapabilities from C:\Windows\system32\svchost.exe -k netsvcs -s CertPropSvc( #0x0/0x1060 )
+7/26/2026 6:38:27 PM 59 RpcGetCurrentSessionCapabilities from C:\Windows\system32\svchost.exe -k netsvcs -s CertPropSvc( #0x0/0x1060 )
+7/26/2026 6:38:27 PM 59 RpcGetCurrentSessionCapabilities from C:\Windows\system32\svchost.exe -k netsvcs -s CertPropSvc( #0x0/0x1060 )
