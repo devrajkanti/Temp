@@ -1,0 +1,29 @@
+                 Instance
+                    │
+         ┌──────────┴──────────┐
+         │                     │
+      Stopped              Running
+         │                     │
+         ▼                     ▼
+ Start Instance         Get-WinEvent
+         │                     │
+         ▼                     ▼
+ Last Login >90?       Last Login >90?
+         │                     │
+   ┌─────┴─────┐          ┌────┴─────┐
+   │           │          │          │
+  Yes         No         Yes        No
+   │           │          │          │
+Inactive    Active      quser      Active
+                          │
+              ┌───────────┴────────────┐
+              │                        │
+      No Session                 Session Exists
+              │                        │
+         Inactive              Check Idle Time
+                                         │
+                              ┌──────────┴──────────┐
+                              │                     │
+                          >=90 Days             <90 Days
+                              │                     │
+                         Inactive              Active
