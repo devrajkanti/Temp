@@ -1,0 +1,165 @@
+When I ran the below PS code in an EC2 instance via SSM. Output of it goes to Error. But I want to extend the script to return true or false. How I can do it?
+
+$quserOutput = quser
+$userData = $quserOutput | Select-Object -skip 1
+if ($userData -eq 'No User exists for *') {
+	Write-Host "No user exists"
+	exit
+}
+
+=============================
+$result = $false
+
+$quserOutput = quser 2>&1
+
+if ($quserOutput -match "No User exists") {
+    $result = $true
+}
+else {
+    # Check Idle Time
+    # If idle time meets your criteria:
+    # $result = $true
+}
+
+Write-Output $result
+=============================
+
+# Default result
+$result = @{
+    NoUserLoggedIn = $false
+    IdleTime       = $null
+    Status         = $null
+    Username       = $null
+}
+
+# Execute quser and capture stdout + stderr
+$quserOutput = quser 2>&1
+
+# Case 1 - No user exists
+if ($quserOutput -match "No User exists") {
+
+    $result.NoUserLoggedIn = $true
+
+}
+else {
+
+    # Skip the header
+    $sessions = $quserOutput | Select-Object -Skip 1
+
+    foreach ($session in $sessions) {
+
+        # Split on 2 or more spaces
+        $cols = $session -split '\s{2,}'
+
+        $result.Username = $cols[0]
+        $result.Status   = $cols[3]
+        $result.IdleTime = $cols[4]
+
+        # Your idle time logic goes here
+        # Example:
+        # if ($result.IdleTime -eq "none") {
+        #     $result.NoUserLoggedIn = $false
+        # }
+        # elseif ($result.IdleTime -match "90") {
+        #     ...
+        # }
+
+        break   # Remove this if you want to process all sessions
+    }
+}
+
+$result | ConvertTo-Json
+
+=============================================
+
+try {
+
+    Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+
+public class IdleTime {
+
+    [StructLayout(LayoutKind.Sequential)]
+    struct LASTINPUTINFO
+    {
+        public uint cbSize;
+        public uint dwTime;
+    }
+
+    [DllImport("user32.dll")]
+    static extern bool GetLastInputInfo(ref LASTINPUTINFO plii);
+
+    public static double GetIdleMinutes()
+    {
+        LASTINPUTINFO info = new LASTINPUTINFO();
+        info.cbSize = (uint)Marshal.SizeOf(info);
+
+        GetLastInputInfo(ref info);
+
+        uint idleTicks = ((uint)Environment.TickCount - info.dwTime);
+
+        return idleTicks / 1000.0 / 60.0;
+    }
+}
+"@
+
+    $sessions = Get-CimInstance Win32_LogonSession |
+        Where-Object {$_.LogonType -in 2,10}
+
+    $result = @()
+
+    foreach($session in $sessions)
+    {
+        $users = Get-CimAssociatedInstance `
+                    -InputObject $session `
+                    -Association Win32_LoggedOnUser
+
+        foreach($user in $users)
+        {
+            $result += [PSCustomObject]@{
+
+                UserName = "$($user.Domain)\$($user.Name)"
+
+                LogonTime = ([Management.ManagementDateTimeConverter]::ToDateTime($session.StartTime))
+
+                IdleMinutes = [math]::Round([IdleTime]::GetIdleMinutes(),2)
+
+                LogonType = switch($session.LogonType)
+                {
+                    2 {"Console"}
+                    10 {"Remote"}
+                    default {"Other"}
+                }
+            }
+        }
+    }
+
+    if($result.Count -eq 0)
+    {
+        @{
+            NoUserLoggedIn = $true
+            Sessions = @()
+        } | ConvertTo-Json -Depth 5
+    }
+    else
+    {
+        @{
+            NoUserLoggedIn = $false
+            Sessions = $result
+        } | ConvertTo-Json -Depth 5
+    }
+
+}
+catch
+{
+    @{
+        Success = $false
+        Error = $_.Exception.Message
+    } | ConvertTo-Json
+}
+
+================================================
+
+
+
