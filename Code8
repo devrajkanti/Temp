@@ -1,0 +1,181 @@
+function CheckDCVLogs {
+
+    $directoryPath = "C:\ProgramData\NICE\DCV\log"
+
+    $loginSearchText = "*The active user has changed from 'none' to*"
+
+    $idleDays = 90
+
+    $dcvLastLogin = $null
+
+
+    # ------------------------------------------------------------
+    # Get newest server.log first
+    # ------------------------------------------------------------
+
+    $fileList = @(
+        Get-ChildItem `
+            -Path $directoryPath `
+            -File `
+            -Filter "server.log*" `
+            -ErrorAction Stop |
+        Sort-Object LastWriteTime -Descending
+    )
+
+
+    foreach ($fileInfo in $fileList) {
+
+        $fileStream = $null
+        $reader = $null
+
+        try {
+
+            Write-Host "Reading: $($fileInfo.FullName)"
+
+
+            # ----------------------------------------------------
+            # Open file allowing DCV to continue writing
+            # ----------------------------------------------------
+
+            $fileStream = [System.IO.File]::Open(
+                $fileInfo.FullName,
+                [System.IO.FileMode]::Open,
+                [System.IO.FileAccess]::Read,
+                [System.IO.FileShare]::ReadWrite
+            )
+
+            $reader = [System.IO.StreamReader]::new($fileStream)
+
+
+            # ----------------------------------------------------
+            # Read complete file into memory
+            # ----------------------------------------------------
+
+            $content = $reader.ReadToEnd()
+
+
+            # ----------------------------------------------------
+            # File is no longer needed.
+            # Close it before parsing.
+            # ----------------------------------------------------
+
+            $reader.Dispose()
+            $reader = $null
+
+            $fileStream.Dispose()
+            $fileStream = $null
+
+
+            # ----------------------------------------------------
+            # Split content into lines
+            # ----------------------------------------------------
+
+            $lines = $content -split "`r?`n"
+
+
+            # ----------------------------------------------------
+            # Search from BOTTOM to TOP
+            # ----------------------------------------------------
+
+            for ($i = $lines.Count - 1; $i -ge 0; $i--) {
+
+                $line = $lines[$i]
+
+
+                # Ignore empty lines
+                if ([string]::IsNullOrWhiteSpace($line)) {
+                    continue
+                }
+
+
+                # ------------------------------------------------
+                # Check only the required login message
+                # ------------------------------------------------
+
+                if ($line -like $loginSearchText) {
+
+                    # Get date from beginning of log line
+                    if ($line -match '^(\d{4}-\d{2}-\d{2})') {
+
+                        $loginDate = $matches[1]
+
+                        $dcvLastLogin = [datetime]::ParseExact(
+                            $loginDate,
+                            "yyyy-MM-dd",
+                            $null
+                        )
+
+                        Write-Host "Latest DCV login found: $loginDate"
+
+                        # Stop searching this file
+                        break
+                    }
+                }
+            }
+
+
+            # ----------------------------------------------------
+            # If found in this file, STOP completely.
+            # Do NOT read server.log.1, server.log.2, etc.
+            # ----------------------------------------------------
+
+            if ($dcvLastLogin) {
+                break
+            }
+        }
+        catch {
+
+            throw "Unable to read DCV log file '$($fileInfo.FullName)': $($_.Exception.Message)"
+        }
+        finally {
+
+            if ($reader) {
+                $reader.Dispose()
+            }
+
+            if ($fileStream) {
+                $fileStream.Dispose()
+            }
+        }
+    }
+
+
+    # ------------------------------------------------------------
+    # No login found
+    # ------------------------------------------------------------
+
+    if ($null -eq $dcvLastLogin) {
+
+        return [PSCustomObject]@{
+            Result           = "NoDCVLoginFound"
+            LastLoggedInDate = $null
+        } | ConvertTo-Json -Compress
+    }
+
+
+    # ------------------------------------------------------------
+    # Calculate days since last login
+    # ------------------------------------------------------------
+
+    $dcvDateDiff = ((Get-Date).Date - $dcvLastLogin.Date).Days
+
+
+    if ($dcvDateDiff -le $idleDays) {
+
+        $result = "ActiveDCV"
+    }
+    else {
+
+        $result = "InactiveDCV"
+    }
+
+
+    # ------------------------------------------------------------
+    # Return result
+    # ------------------------------------------------------------
+
+    return [PSCustomObject]@{
+        Result           = $result
+        LastLoggedInDate = $dcvLastLogin.ToString("yyyy-MM-dd")
+    } | ConvertTo-Json -Compress
+}
