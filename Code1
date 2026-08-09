@@ -1,0 +1,390 @@
+function CheckDCVLogs {
+
+    # ============================================================
+    # Configuration
+    # ============================================================
+
+    $directoryPath = "C:\ProgramData\NICE\DCV\log"
+
+    $loginSearchText1 = "INFO session - user logged into session"
+
+    $loginSearchText2 = "INFO agentlauncher - The active user has changed from 'none' to"
+
+    # Number of days after which DCV access is considered inactive
+    $idleDays = 90
+
+    # Retry configuration for locked/busy log files
+    $maxRetries = 3
+    $retryDelayMilliseconds = 1000
+
+    $todayDate = (Get-Date).Date
+
+
+    # ============================================================
+    # Check whether DCV log directory exists
+    # ============================================================
+
+    if (-not (Test-Path -LiteralPath $directoryPath -PathType Container)) {
+
+        return [PSCustomObject]@{
+            Result           = "DCVLogDirectoryNotFound"
+            LastLoggedInDate = $null
+        } | ConvertTo-Json -Compress
+    }
+
+
+    # ============================================================
+    # Get DCV server logs
+    #
+    # This includes:
+    #   server.log
+    #   server.log.1
+    #   server.log.2
+    #   etc.
+    #
+    # Rotated logs are important when determining access over
+    # a 90-day period.
+    # ============================================================
+
+    try {
+
+        $fileList = @(
+            Get-ChildItem `
+                -LiteralPath $directoryPath `
+                -File `
+                -Filter "server.log*" `
+                -ErrorAction Stop |
+            Sort-Object LastWriteTime -Descending
+        )
+
+    }
+    catch {
+
+        return [PSCustomObject]@{
+            Result           = "DCVLogFileEnumerationError"
+            LastLoggedInDate = $null
+        } | ConvertTo-Json -Compress
+    }
+
+
+    # ============================================================
+    # No log files found
+    # ============================================================
+
+    if ($fileList.Count -eq 0) {
+
+        return [PSCustomObject]@{
+            Result           = "DCVLogFileNotFound"
+            LastLoggedInDate = $null
+        } | ConvertTo-Json -Compress
+    }
+
+
+    # ============================================================
+    # Store login information by date
+    #
+    # Example:
+    #
+    # 2026-08-09
+    #     Message1Found = True
+    #     Message2Found = True
+    #
+    # Only a date where BOTH messages are present is considered
+    # a valid DCV login.
+    # ============================================================
+
+    $dateMatches = @{}
+
+    $filesRead = 0
+    $filesFailed = 0
+
+
+    # ============================================================
+    # Process each log file
+    # ============================================================
+
+    foreach ($fileInfo in $fileList) {
+
+        $filePath = $fileInfo.FullName
+
+        $fileStream = $null
+        $reader = $null
+        $fileOpened = $false
+
+
+        # --------------------------------------------------------
+        # Open the file.
+        #
+        # FileShare.ReadWrite allows the DCV process to continue
+        # writing to the log while we are reading it.
+        #
+        # FileShare.Delete allows log rotation while the file is
+        # being read.
+        # --------------------------------------------------------
+
+        for ($attempt = 1; $attempt -le $maxRetries; $attempt++) {
+
+            try {
+
+                $fileStream = [System.IO.File]::Open(
+                    $filePath,
+                    [System.IO.FileMode]::Open,
+                    [System.IO.FileAccess]::Read,
+                    ([System.IO.FileShare]::ReadWrite -bor [System.IO.FileShare]::Delete)
+                )
+
+                $reader = [System.IO.StreamReader]::new(
+                    $fileStream,
+                    [System.Text.Encoding]::UTF8,
+                    $true
+                )
+
+                $fileOpened = $true
+
+                break
+            }
+            catch [System.IO.IOException] {
+
+                if ($reader) {
+                    $reader.Dispose()
+                    $reader = $null
+                }
+
+                if ($fileStream) {
+                    $fileStream.Dispose()
+                    $fileStream = $null
+                }
+
+                if ($attempt -lt $maxRetries) {
+                    Start-Sleep -Milliseconds $retryDelayMilliseconds
+                }
+            }
+            catch {
+
+                if ($reader) {
+                    $reader.Dispose()
+                    $reader = $null
+                }
+
+                if ($fileStream) {
+                    $fileStream.Dispose()
+                    $fileStream = $null
+                }
+
+                break
+            }
+        }
+
+
+        # --------------------------------------------------------
+        # If this file could not be opened, continue with the
+        # next log file.
+        # --------------------------------------------------------
+
+        if (-not $fileOpened) {
+
+            $filesFailed++
+
+            continue
+        }
+
+        $filesRead++
+
+
+        try {
+
+            # ----------------------------------------------------
+            # Read the file line-by-line.
+            #
+            # IMPORTANT:
+            # We intentionally do NOT use:
+            #
+            # [System.IO.File]::ReadAllLines()
+            #
+            # This keeps memory usage low and allows us to specify
+            # FileShare.ReadWrite.
+            # ----------------------------------------------------
+
+            while (($line = $reader.ReadLine()) -ne $null) {
+
+                # ------------------------------------------------
+                # Extract date from the beginning of the log line.
+                #
+                # Example:
+                # 2026-08-09 12:30:45 INFO ...
+                # ------------------------------------------------
+
+                if ($line -notmatch '^\s*(\d{4}-\d{2}-\d{2})\b') {
+                    continue
+                }
+
+                $logDateString = $matches[1]
+
+
+                # ------------------------------------------------
+                # Convert string to DateTime
+                # ------------------------------------------------
+
+                try {
+
+                    $logDate = [datetime]::ParseExact(
+                        $logDateString,
+                        "yyyy-MM-dd",
+                        [System.Globalization.CultureInfo]::InvariantCulture
+                    ).Date
+
+                }
+                catch {
+
+                    continue
+                }
+
+
+                # ------------------------------------------------
+                # Create date entry if it doesn't exist
+                # ------------------------------------------------
+
+                if (-not $dateMatches.ContainsKey($logDateString)) {
+
+                    $dateMatches[$logDateString] = @{
+                        Date          = $logDate
+                        Message1Found = $false
+                        Message2Found = $false
+                    }
+                }
+
+
+                # ------------------------------------------------
+                # Check first login message
+                # ------------------------------------------------
+
+                if (
+                    -not $dateMatches[$logDateString].Message1Found -and
+                    $line.IndexOf(
+                        $loginSearchText1,
+                        [System.StringComparison]::OrdinalIgnoreCase
+                    ) -ge 0
+                ) {
+
+                    $dateMatches[$logDateString].Message1Found = $true
+                }
+
+
+                # ------------------------------------------------
+                # Check second login message
+                # ------------------------------------------------
+
+                if (
+                    -not $dateMatches[$logDateString].Message2Found -and
+                    $line.IndexOf(
+                        $loginSearchText2,
+                        [System.StringComparison]::OrdinalIgnoreCase
+                    ) -ge 0
+                ) {
+
+                    $dateMatches[$logDateString].Message2Found = $true
+                }
+            }
+        }
+        catch {
+
+            # The log could have been rotated/replaced while
+            # it was being read. Do not terminate the entire
+            # function because of one problematic file.
+
+            $filesFailed++
+        }
+        finally {
+
+            # ----------------------------------------------------
+            # Always release the file handles.
+            # ----------------------------------------------------
+
+            if ($reader) {
+                $reader.Dispose()
+                $reader = $null
+            }
+
+            if ($fileStream) {
+                $fileStream.Dispose()
+                $fileStream = $null
+            }
+        }
+    }
+
+
+    # ============================================================
+    # Find dates where BOTH login messages were found
+    # ============================================================
+
+    $matchingDates = @(
+        $dateMatches.Values |
+        Where-Object {
+            $_.Message1Found -and $_.Message2Found
+        } |
+        Sort-Object Date -Descending
+    )
+
+
+    # ============================================================
+    # No valid DCV login found
+    # ============================================================
+
+    if ($matchingDates.Count -eq 0) {
+
+        # If we couldn't read ANY files, report a read error.
+        # Do not incorrectly report the Workbench as inactive.
+        if ($filesRead -eq 0 -and $filesFailed -gt 0) {
+
+            return [PSCustomObject]@{
+                Result           = "DCVLogReadError"
+                LastLoggedInDate = $null
+            } | ConvertTo-Json -Compress
+        }
+
+
+        # Logs were successfully read, but no login event was found.
+        return [PSCustomObject]@{
+            Result           = "NoDCVLoginFound"
+            LastLoggedInDate = $null
+        } | ConvertTo-Json -Compress
+    }
+
+
+    # ============================================================
+    # Get the most recent valid DCV login date
+    # ============================================================
+
+    $dcvLastLogin = $matchingDates[0].Date
+
+
+    # ============================================================
+    # Calculate number of days since last DCV login
+    # ============================================================
+
+    $dcvDateDiff = ($todayDate - $dcvLastLogin).Days
+
+
+    # ============================================================
+    # Determine Active / Inactive status
+    # ============================================================
+
+    if ($dcvDateDiff -le $idleDays) {
+
+        $result = "ActiveDCV"
+    }
+    else {
+
+        $result = "InactiveDCV"
+    }
+
+
+    # ============================================================
+    # Return result
+    # ============================================================
+
+    return [PSCustomObject]@{
+        Result           = $result
+        LastLoggedInDate = $dcvLastLogin.ToString("yyyy-MM-dd")
+    } | ConvertTo-Json -Compress
+}
