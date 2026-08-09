@@ -1,0 +1,139 @@
+function CheckDCVLogs {
+
+    $loginSearchText1 = "*User logged into session*"
+    $loginSearchText2 = "*The active user has changed from 'none' to*"
+
+    $directoryPath = "C:\ProgramData\NICE\DCV\log"
+
+    $idleDays = 90
+
+    $fileList = Get-ChildItem `
+        -Path $directoryPath `
+        -File `
+        -Filter "server.log*" |
+        Sort-Object LastWriteTime -Descending
+
+
+    foreach ($fileInfo in $fileList) {
+
+        $fileStream = $null
+        $reader = $null
+
+        try {
+
+            Write-Host "Reading: $($fileInfo.FullName)"
+
+            $fileStream = [System.IO.File]::Open(
+                $fileInfo.FullName,
+                [System.IO.FileMode]::Open,
+                [System.IO.FileAccess]::Read,
+                [System.IO.FileShare]::ReadWrite
+            )
+
+            $reader = [System.IO.StreamReader]::new($fileStream)
+
+            # Use List instead of +=
+            $lines = [System.Collections.Generic.List[string]]::new()
+
+            while (($line = $reader.ReadLine()) -ne $null) {
+                [void]$lines.Add($line)
+            }
+
+            Write-Host "Total lines read: $($lines.Count)"
+
+
+            # Search from bottom to top
+            for ($i = $lines.Count - 1; $i -ge 0; $i--) {
+
+                $currentLine = $lines[$i]
+
+                if ($currentLine -notmatch '^(\d{4}-\d{2}-\d{2})') {
+                    continue
+                }
+
+                $logDate = $matches[1]
+
+
+                # First message
+                if ($currentLine -like $loginSearchText1) {
+
+                    Write-Host "Found login message 1: $currentLine"
+
+                    # Look backwards for the second message
+                    for ($j = $i; $j -ge 0; $j--) {
+
+                        $previousLine = $lines[$j]
+
+                        if ($previousLine -like $loginSearchText2) {
+
+                            if ($previousLine -match '^(\d{4}-\d{2}-\d{2})') {
+
+                                $secondDate = $matches[1]
+
+                                if ($secondDate -eq $logDate) {
+
+                                    $dcvLastLogin = [datetime]::ParseExact(
+                                        $logDate,
+                                        "yyyy-MM-dd",
+                                        $null
+                                    )
+
+                                    break
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if ($dcvLastLogin) {
+                    break
+                }
+            }
+
+
+            if ($dcvLastLogin) {
+                break
+            }
+        }
+        catch {
+
+            throw "Unable to read DCV log file '$($fileInfo.FullName)': $($_.Exception.Message)"
+        }
+        finally {
+
+            if ($reader) {
+                $reader.Dispose()
+            }
+
+            if ($fileStream) {
+                $fileStream.Dispose()
+            }
+        }
+    }
+
+
+    if (-not $dcvLastLogin) {
+
+        return [PSCustomObject]@{
+            Result           = "NoDCVLoginFound"
+            LastLoggedInDate = $null
+        } | ConvertTo-Json -Compress
+    }
+
+
+    $dcvDateDiff = ((Get-Date).Date - $dcvLastLogin.Date).Days
+
+
+    if ($dcvDateDiff -le $idleDays) {
+        $result = "ActiveDCV"
+    }
+    else {
+        $result = "InactiveDCV"
+    }
+
+
+    return [PSCustomObject]@{
+        Result           = $result
+        LastLoggedInDate = $dcvLastLogin.ToString("yyyy-MM-dd")
+    } | ConvertTo-Json -Compress
+}
