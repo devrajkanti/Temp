@@ -79,3 +79,17 @@ $lastRdpAccess = Get-WinEvent -LogName "Microsoft-Windows-TerminalServices-Local
 
 $lastRdpAccess.TimeCreated
 
+
++++++++++++++++++++++++++++++++
+
+$token = Invoke-RestMethod `
+    -Method PUT `
+    -Uri "http://169.254.169.254/latest/api/token" `
+    -Headers @{"X-aws-ec2-metadata-token-ttl-seconds" = "21600"}
+
+$instanceId = Invoke-RestMethod `
+    -Method GET `
+    -Uri "http://169.254.169.254/latest/meta-data/instance-id" `
+    -Headers @{"X-aws-ec2-metadata-token" = $token}
+
+Write-Output "Instance ID: $instanceId"
