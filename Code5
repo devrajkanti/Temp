@@ -1,0 +1,169 @@
+function CheckDCVLogs {
+
+    $loginSearchText1 = "*User logged into session*"
+    $loginSearchText2 = "*The active user has changed from 'none' to*"
+
+    $loginSearchFlag1 = $false
+    $loginSearchFlag2 = $false
+
+    $loginSearchDate1 = $null
+    $loginSearchDate2 = $null
+
+    $dcvLastLogin = $null
+
+    $directoryPath = "C:\ProgramData\NICE\DCV\log"
+
+    $idleDays = 90
+
+
+    # Get DCV server logs.
+    # Newest log file is processed first.
+    $fileList = Get-ChildItem `
+        -Path $directoryPath `
+        -File `
+        -Filter "server.log*" |
+        Sort-Object LastWriteTime -Descending
+
+
+    foreach ($fileInfo in $fileList) {
+
+        $fileStream = $null
+        $reader = $null
+
+        try {
+
+            # Open the file while allowing DCV to continue
+            # writing to the file.
+            $fileStream = [System.IO.File]::Open(
+                $fileInfo.FullName,
+                [System.IO.FileMode]::Open,
+                [System.IO.FileAccess]::Read,
+                [System.IO.FileShare]::ReadWrite
+            )
+
+            $reader = [System.IO.StreamReader]::new($fileStream)
+
+
+            # Read the file into memory.
+            $lines = @()
+
+            while (($line = $reader.ReadLine()) -ne $null) {
+                $lines += $line
+            }
+
+
+            # ----------------------------------------------------
+            # IMPORTANT:
+            # Search from BOTTOM to TOP.
+            #
+            # Newest log entries are at the bottom because DCV
+            # appends new entries to the log.
+            # ----------------------------------------------------
+
+            for ($i = $lines.Count - 1; $i -ge 0; $i--) {
+
+                $currentLine = $lines[$i]
+
+
+                # Get date from beginning of log line
+                if ($currentLine -match '^(\d{4}-\d{2}-\d{2})') {
+
+                    $logDate = $matches[1]
+
+
+                    # Search for:
+                    # User logged into session
+                    if (
+                        -not $loginSearchFlag1 -and
+                        $currentLine -like $loginSearchText1
+                    ) {
+
+                        $loginSearchDate1 = $logDate
+                        $loginSearchFlag1 = $true
+                    }
+
+
+                    # Search for:
+                    # The active user has changed from 'none' to
+                    if (
+                        -not $loginSearchFlag2 -and
+                        $currentLine -like $loginSearchText2
+                    ) {
+
+                        $loginSearchDate2 = $logDate
+                        $loginSearchFlag2 = $true
+                    }
+
+
+                    # Both messages found on the same date
+                    if (
+                        $loginSearchFlag1 -and
+                        $loginSearchFlag2 -and
+                        ($loginSearchDate1 -eq $loginSearchDate2)
+                    ) {
+
+                        $dcvLastLogin = [datetime]::ParseExact(
+                            $loginSearchDate1,
+                            "yyyy-MM-dd",
+                            $null
+                        )
+
+                        break
+                    }
+                }
+            }
+
+
+            # We found the latest login.
+            # No need to process older log files.
+            if ($dcvLastLogin) {
+                break
+            }
+        }
+        catch {
+
+            # Do not silently ignore a log that cannot be read.
+            throw "Unable to read DCV log file '$($fileInfo.FullName)': $($_.Exception.Message)"
+        }
+        finally {
+
+            if ($reader) {
+                $reader.Dispose()
+            }
+
+            if ($fileStream) {
+                $fileStream.Dispose()
+            }
+        }
+    }
+
+
+    # No valid DCV login found
+    if (-not $dcvLastLogin) {
+
+        return [PSCustomObject]@{
+            Result           = "NoDCVLoginFound"
+            LastLoggedInDate = $null
+        } | ConvertTo-Json -Compress
+    }
+
+
+    # Calculate days since last DCV login
+    $dcvDateDiff = ((Get-Date).Date - $dcvLastLogin.Date).Days
+
+
+    if ($dcvDateDiff -le $idleDays) {
+
+        $result = "ActiveDCV"
+    }
+    else {
+
+        $result = "InactiveDCV"
+    }
+
+
+    return [PSCustomObject]@{
+        Result           = $result
+        LastLoggedInDate = $dcvLastLogin.ToString("yyyy-MM-dd")
+    } | ConvertTo-Json -Compress
+}
