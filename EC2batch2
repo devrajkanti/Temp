@@ -1,0 +1,584 @@
+import boto3
+import time
+from botocore.exceptions import WaiterError, ClientError
+
+
+REGION = "eu-west-1"
+BATCH_SIZE = 20
+
+ec2 = boto3.client("ec2", region_name=REGION)
+ssm = boto3.client("ssm", region_name=REGION)
+
+
+# ---------------------------------------------------------
+# Divide list into batches
+# ---------------------------------------------------------
+
+def chunks(seq, size):
+    for i in range(0, len(seq), size):
+        yield seq[i:i + size]
+
+
+# ---------------------------------------------------------
+# Read PowerShell script
+# ---------------------------------------------------------
+
+def read_powershell_script(script_path):
+
+    with open(script_path, "r", encoding="utf-8") as file:
+        return file.read()
+
+
+# ---------------------------------------------------------
+# Wait for EC2 state
+# ---------------------------------------------------------
+
+def wait_for_instance_state(instance_ids, state):
+
+    if not instance_ids:
+        return True
+
+    print(
+        f"Waiting for {len(instance_ids)} instance(s) "
+        f"to become '{state}'..."
+    )
+
+    if state == "running":
+        waiter_name = "instance_running"
+
+    elif state == "stopped":
+        waiter_name = "instance_stopped"
+
+    else:
+        raise ValueError(
+            f"Unsupported instance state: {state}"
+        )
+
+    waiter = ec2.get_waiter(waiter_name)
+
+    try:
+
+        waiter.wait(
+            InstanceIds=instance_ids,
+            WaiterConfig={
+                "Delay": 10,
+                "MaxAttempts": 60
+            }
+        )
+
+        print(
+            f"All {len(instance_ids)} instance(s) "
+            f"are '{state}'."
+        )
+
+        return True
+
+    except WaiterError as e:
+
+        print(
+            f"WARNING: Not all instances reached "
+            f"'{state}': {e}"
+        )
+
+        return False
+
+
+# ---------------------------------------------------------
+# Get current state of instances
+# ---------------------------------------------------------
+
+def get_instance_states(instance_ids):
+
+    states = {}
+
+    if not instance_ids:
+        return states
+
+    response = ec2.describe_instances(
+        InstanceIds=instance_ids
+    )
+
+    for reservation in response["Reservations"]:
+
+        for instance in reservation["Instances"]:
+
+            states[instance["InstanceId"]] = (
+                instance["State"]["Name"]
+            )
+
+    return states
+
+
+# ---------------------------------------------------------
+# Wait for SSM to become available
+# ---------------------------------------------------------
+
+def wait_for_ssm(instance_ids):
+
+    if not instance_ids:
+        return []
+
+    print(
+        f"Waiting for SSM on {len(instance_ids)} instance(s)..."
+    )
+
+    remaining = set(instance_ids)
+    ssm_ready = set()
+
+    max_attempts = 60
+
+    for attempt in range(1, max_attempts + 1):
+
+        if not remaining:
+            break
+
+        try:
+
+            response = ssm.describe_instance_information(
+                Filters=[
+                    {
+                        "Key": "InstanceIds",
+                        "Values": list(remaining)
+                    }
+                ]
+            )
+
+            online = {
+                item["InstanceId"]
+                for item in response.get(
+                    "InstanceInformationList",
+                    []
+                )
+                if item.get("PingStatus") == "Online"
+            }
+
+            ssm_ready.update(online)
+            remaining -= online
+
+            if remaining:
+                print(
+                    f"SSM not ready for "
+                    f"{len(remaining)} instance(s). "
+                    f"Attempt {attempt}/{max_attempts}"
+                )
+
+                time.sleep(10)
+
+        except ClientError as e:
+
+            print(
+                f"WARNING: Error checking SSM status: {e}"
+            )
+
+            time.sleep(10)
+
+    if remaining:
+        print(
+            f"WARNING: SSM unavailable for: "
+            f"{sorted(remaining)}"
+        )
+
+    print(
+        f"SSM ready on {len(ssm_ready)} instance(s)."
+    )
+
+    return list(ssm_ready)
+
+
+# ---------------------------------------------------------
+# Execute SSM PowerShell script
+# ---------------------------------------------------------
+
+def run_ssm_command(instance_ids, powershell_script):
+
+    if not instance_ids:
+        return {}
+
+    print(
+        f"Running SSM command on "
+        f"{len(instance_ids)} instance(s)..."
+    )
+
+    response = ssm.send_command(
+        InstanceIds=instance_ids,
+        DocumentName="AWS-RunPowerShellScript",
+        Parameters={
+            "commands": [powershell_script]
+        },
+        TimeoutSeconds=3600
+    )
+
+    command_id = response["Command"]["CommandId"]
+
+    print(f"SSM Command ID: {command_id}")
+
+    remaining = set(instance_ids)
+    results = {}
+
+    terminal_states = {
+        "Success",
+        "Failed",
+        "Cancelled",
+        "TimedOut",
+        "Cancelling"
+    }
+
+    while remaining:
+
+        try:
+
+            response = ssm.list_command_invocations(
+                CommandId=command_id,
+                Details=True
+            )
+
+            for invocation in response.get(
+                "CommandInvocations",
+                []
+            ):
+
+                instance_id = invocation["InstanceId"]
+                status = invocation["Status"]
+
+                if instance_id not in remaining:
+                    continue
+
+                if status in terminal_states:
+
+                    results[instance_id] = status
+                    remaining.remove(instance_id)
+
+                    print(
+                        f"{instance_id}: "
+                        f"SSM status = {status}"
+                    )
+
+        except ClientError as e:
+
+            print(
+                f"WARNING: Error checking SSM command "
+                f"status: {e}"
+            )
+
+        if remaining:
+            time.sleep(10)
+
+    return results
+
+
+# ---------------------------------------------------------
+# Stop instances
+# ---------------------------------------------------------
+
+def stop_instances(instance_ids):
+
+    if not instance_ids:
+        return
+
+    print(
+        f"Stopping {len(instance_ids)} instance(s)..."
+    )
+
+    try:
+
+        ec2.stop_instances(
+            InstanceIds=instance_ids
+        )
+
+    except ClientError as e:
+
+        print(
+            f"ERROR while sending stop request: {e}"
+        )
+
+        return
+
+    # Verify that ALL are eventually stopped
+    wait_for_instance_state(
+        instance_ids,
+        "stopped"
+    )
+
+
+# ---------------------------------------------------------
+# Process ONE batch
+# ---------------------------------------------------------
+
+def process_batch(batch, powershell_script):
+
+    instance_ids = [
+        instance["InstanceId"]
+        for instance in batch
+    ]
+
+    print("\n" + "=" * 70)
+    print(
+        f"Processing batch "
+        f"({len(instance_ids)} instances)"
+    )
+    print("=" * 70)
+
+    for instance_id in instance_ids:
+        print(f"  {instance_id}")
+
+    started_instances = []
+
+    try:
+
+        # -------------------------------------------------
+        # 1. Start instances
+        # -------------------------------------------------
+
+        print("\nStarting instances...")
+
+        try:
+
+            ec2.start_instances(
+                InstanceIds=instance_ids
+            )
+
+            started_instances = list(instance_ids)
+
+        except ClientError as e:
+
+            print(
+                f"ERROR starting batch: {e}"
+            )
+
+            # Find which instances are actually running
+            states = get_instance_states(
+                instance_ids
+            )
+
+            started_instances = [
+                instance_id
+                for instance_id, state
+                in states.items()
+                if state in [
+                    "pending",
+                    "running"
+                ]
+            ]
+
+            if not started_instances:
+
+                print(
+                    "No instances from this batch "
+                    "were started."
+                )
+
+                return
+
+        # -------------------------------------------------
+        # 2. Wait for instances to become Running
+        # -------------------------------------------------
+
+        all_running = wait_for_instance_state(
+            started_instances,
+            "running"
+        )
+
+        # -------------------------------------------------
+        # 3. Identify instances that are actually Running
+        # -------------------------------------------------
+
+        states = get_instance_states(
+            started_instances
+        )
+
+        running_instances = [
+            instance_id
+            for instance_id, state
+            in states.items()
+            if state == "running"
+        ]
+
+        failed_to_start = [
+            instance_id
+            for instance_id in started_instances
+            if instance_id not in running_instances
+        ]
+
+        print(
+            f"\nRunning instances: "
+            f"{len(running_instances)}"
+        )
+
+        if failed_to_start:
+
+            print(
+                f"Instances that did not reach "
+                f"Running state: {failed_to_start}"
+            )
+
+        # -------------------------------------------------
+        # 4. Wait for SSM only on Running instances
+        # -------------------------------------------------
+
+        ssm_ready_instances = wait_for_ssm(
+            running_instances
+        )
+
+        # -------------------------------------------------
+        # 5. Run SSM only on SSM-ready instances
+        # -------------------------------------------------
+
+        if ssm_ready_instances:
+
+            results = run_ssm_command(
+                ssm_ready_instances,
+                powershell_script
+            )
+
+            print("\nSSM execution summary:")
+
+            for instance_id, status in results.items():
+
+                print(
+                    f"  {instance_id}: {status}"
+                )
+
+        else:
+
+            print(
+                "No instances are SSM-ready. "
+                "Skipping SSM execution."
+            )
+
+    except Exception as e:
+
+        # IMPORTANT:
+        # An error in this batch should NOT terminate
+        # the entire program.
+
+        print(
+            f"\nERROR processing batch: {e}"
+        )
+
+    finally:
+
+        # -------------------------------------------------
+        # 6. ALWAYS attempt to stop instances
+        # -------------------------------------------------
+
+        print("\nPreparing to stop batch...")
+
+        if started_instances:
+
+            # Get the latest states
+            try:
+
+                states = get_instance_states(
+                    started_instances
+                )
+
+                # Stop instances that are currently
+                # running or pending
+                instances_to_stop = [
+                    instance_id
+                    for instance_id, state
+                    in states.items()
+                    if state in [
+                        "pending",
+                        "running"
+                    ]
+                ]
+
+                if instances_to_stop:
+
+                    stop_instances(
+                        instances_to_stop
+                    )
+
+                else:
+
+                    print(
+                        "No running/pending instances "
+                        "need to be stopped."
+                    )
+
+            except Exception as e:
+
+                print(
+                    f"ERROR while stopping batch: {e}"
+                )
+
+    print("\nBatch processing completed.")
+
+
+# ---------------------------------------------------------
+# Process ALL instances
+# ---------------------------------------------------------
+
+def process_instances(instance_list, script_path):
+
+    powershell_script = read_powershell_script(
+        script_path
+    )
+
+    total_instances = len(instance_list)
+
+    print(
+        f"Total instances to process: "
+        f"{total_instances}"
+    )
+
+    for batch_number, batch in enumerate(
+        chunks(instance_list, BATCH_SIZE),
+        start=1
+    ):
+
+        print(
+            f"\n\n{'#' * 70}"
+        )
+
+        print(
+            f"STARTING BATCH {batch_number}"
+        )
+
+        print(
+            f"{'#' * 70}"
+        )
+
+        try:
+
+            process_batch(
+                batch,
+                powershell_script
+            )
+
+        except Exception as e:
+
+            # Safety net:
+            # Even if something unexpected escapes
+            # process_batch(), continue to next batch.
+
+            print(
+                f"ERROR in batch {batch_number}: {e}"
+            )
+
+        print(
+            f"\nBATCH {batch_number} FINISHED"
+        )
+
+    print(
+        "\n\nAll batches have been processed."
+    )
+
+
+# ---------------------------------------------------------
+# Example
+# ---------------------------------------------------------
+
+instances = [
+    {"InstanceId": "i-01234567890123456"},
+    {"InstanceId": "i-01234567890123457"},
+    {"InstanceId": "i-01234567890123458"},
+    # ...
+]
+
+
+process_instances(
+    instances,
+    r"C:\Scripts\my_script.ps1"
+)
