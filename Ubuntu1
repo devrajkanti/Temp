@@ -1,0 +1,329 @@
+Yes. Let's do the **same systematic testing for Ubuntu**, rather than assuming that one Linux command covers everything.
+
+Your Windows testing taught us an important lesson: **login and reconnect are different events**. We should apply exactly the same approach to Ubuntu.
+
+For Ubuntu, the main sources we'll investigate are:
+
+* `journalctl` / systemd journal
+* `/var/log/auth.log`
+* `last`
+* NICE DCV logs under `/var/log/dcv/`
+
+`journalctl` is the native tool for querying the systemd journal, and SSH authentication/session events can be queried from the journal or authentication logs. ([Ubuntu Manpages][1]) NICE DCV's Linux server logs are normally under `/var/log/dcv/`, with `server.log` being the most relevant DCV log. ([AWS Documentation][2])
+
+# Step 1 — Check SSH first
+
+On your Ubuntu workbench, run:
+
+```bash
+sudo journalctl _COMM=sshd --since "24 hours ago" --no-pager
+```
+
+Also run:
+
+```bash
+sudo grep -E "Accepted|session opened|session closed" /var/log/auth.log
+```
+
+And:
+
+```bash
+last -F
+```
+
+We're looking for things such as:
+
+```text
+Accepted password for userid from ...
+Accepted publickey for userid from ...
+session opened for user userid
+session closed for user userid
+```
+
+The SSH logs are particularly useful because successful SSH authentication is explicitly recorded as an `Accepted` event. ([Ubuntu Manpages][3])
+
+---
+
+# Step 2 — Test a fresh SSH login
+
+Do this exactly like we tested RDP/DCV on Windows.
+
+### Test A — Fresh SSH
+
+1. Make sure nobody is currently connected.
+2. From your laptop:
+
+```bash
+ssh <userid>@<ubuntu-instance>
+```
+
+3. Log in.
+4. Immediately run:
+
+```bash
+sudo journalctl _COMM=sshd --since "10 minutes ago" --no-pager
+```
+
+Also:
+
+```bash
+sudo grep -E "Accepted|session opened|session closed" /var/log/auth.log | tail -20
+```
+
+And:
+
+```bash
+last -F | head -10
+```
+
+### What we're trying to establish
+
+We want to identify the exact event that means:
+
+> **A user successfully accessed the Ubuntu workbench through SSH.**
+
+---
+
+# Step 3 — Disconnect SSH and reconnect
+
+This is important.
+
+From the SSH session:
+
+```bash
+exit
+```
+
+Then reconnect:
+
+```bash
+ssh <userid>@<ubuntu-instance>
+```
+
+Now run:
+
+```bash
+sudo journalctl _COMM=sshd --since "10 minutes ago" --no-pager
+```
+
+And:
+
+```bash
+sudo grep -E "Accepted|session opened|session closed" /var/log/auth.log | tail -30
+```
+
+We need to determine:
+
+```text
+Fresh SSH login
+        ↓
+New authentication event?
+
+Reconnect
+        ↓
+New authentication event?
+```
+
+Unlike DCV, SSH normally creates a new authenticated SSH connection when you reconnect, but **we should verify it on your actual workbench rather than assume**.
+
+---
+
+# Step 4 — Check DCV logs
+
+Now let's investigate DCV separately.
+
+Run:
+
+```bash
+sudo ls -lah /var/log/dcv/
+```
+
+Then:
+
+```bash
+sudo find /var/log/dcv/ -maxdepth 1 -type f -printf '%TY-%Tm-%Td %TH:%TM:%TS %p\n' | sort -r
+```
+
+According to the DCV documentation, Linux DCV logs are stored in `/var/log/dcv/`, and `server.log` is the most relevant log for connection-related investigation. ([AWS Documentation][2])
+
+Then run:
+
+```bash
+sudo tail -200 /var/log/dcv/server.log
+```
+
+**Don't send me the entire log if it contains UIDs/usernames.** You can mask them.
+
+---
+
+# Step 5 — Fresh DCV Viewer session
+
+Now do:
+
+### Test B
+
+1. Close any existing DCV connection.
+2. Open **DCV Viewer**.
+3. Connect to the Ubuntu workbench.
+4. Authenticate.
+5. Once the desktop appears, run:
+
+```bash
+sudo tail -200 /var/log/dcv/server.log
+```
+
+We're looking for entries around the exact connection time.
+
+---
+
+# Step 6 — Disconnect and reconnect to the same DCV session
+
+This is the most important test, exactly like your Windows test.
+
+### Test C
+
+1. Start DCV Viewer.
+2. Connect.
+3. Leave the desktop/session running.
+4. Close the DCV Viewer.
+5. **Do not log out of Ubuntu.**
+6. Open DCV Viewer again.
+7. Connect to the **same existing DCV session**.
+8. Check:
+
+```bash
+sudo tail -200 /var/log/dcv/server.log
+```
+
+We're specifically looking for:
+
+```text
+Fresh DCV login
+       ↓
+DCV log event
+
+Disconnect
+       ↓
+DCV log event
+
+Reconnect to existing session
+       ↓
+DCV log event?
+```
+
+This is the Linux equivalent of the test that exposed the Event ID 21 limitation on Windows.
+
+---
+
+# Step 7 — New DCV session
+
+If your environment allows you to create/download a new DCV session:
+
+1. Close the existing DCV connection.
+2. Create a **new DCV session**.
+3. Connect using it.
+4. Check:
+
+```bash
+sudo tail -200 /var/log/dcv/server.log
+```
+
+This tells us whether a **new DCV session** generates a distinguishable event from reconnecting to an existing session.
+
+---
+
+# Step 8 — Web DCV
+
+Now repeat the same tests through the browser.
+
+### Test D — Fresh Web DCV
+
+1. Open the DCV Web Portal.
+2. Connect to the Ubuntu workbench.
+3. Authenticate.
+4. Once connected:
+
+```bash
+sudo tail -200 /var/log/dcv/server.log
+```
+
+### Test E — Web DCV reconnect
+
+1. Close the browser/DCV session.
+2. Do **not** terminate the underlying DCV session.
+3. Open the Web Portal again.
+4. Reconnect.
+5. Check:
+
+```bash
+sudo tail -200 /var/log/dcv/server.log
+```
+
+Again, we're specifically testing whether the **reconnect generates a new log entry**.
+
+---
+
+# Step 9 — Check `last`
+
+After you've performed the tests, run:
+
+```bash
+last -F | head -20
+```
+
+This is useful because `last` reconstructs login sessions from the system's login accounting information.
+
+You might see:
+
+```text
+userid    pts/0    10.x.x.x    Thu Aug 13 21:10:12 2026   still logged in
+userid    pts/0    10.x.x.x    Thu Aug 13 20:50:32 2026 - 21:05:10
+```
+
+But don't make `last` our final source yet. We need to see what happens with DCV and reconnects.
+
+---
+
+# What I want from your Ubuntu testing
+
+We can build exactly the same table we built for Windows:
+
+| Test                       | SSH logs | `last` | DCV `server.log` |
+| -------------------------- | -------- | ------ | ---------------- |
+| Fresh SSH                  | ?        | ?      | N/A              |
+| SSH reconnect              | ?        | ?      | N/A              |
+| Fresh DCV Viewer           | ?        | ?      | ?                |
+| Reconnect same DCV session | ?        | ?      | ?                |
+| New DCV session            | ?        | ?      | ?                |
+| Fresh Web DCV              | ?        | ?      | ?                |
+| Reconnect Web DCV          | ?        | ?      | ?                |
+
+Once we have this table, **then** we decide what the Ubuntu equivalent of your Windows logic should be.
+
+### Start with these commands
+
+I recommend doing the tests one at a time and collecting only the relevant output:
+
+```bash
+sudo journalctl _COMM=sshd --since "10 minutes ago" --no-pager
+```
+
+```bash
+sudo grep -E "Accepted|session opened|session closed" /var/log/auth.log | tail -30
+```
+
+```bash
+last -F | head -20
+```
+
+and for DCV:
+
+```bash
+sudo tail -200 /var/log/dcv/server.log
+```
+
+**Do Test A first — fresh SSH login — and send me the output (mask your UID/IP if necessary).** Then we'll identify the exact SSH event before moving to DCV.
+
+[1]: https://manpages.ubuntu.com/manpages/resolute/man1/journalctl.1.html?utm_source=chatgpt.com "Ubuntu Manpage: journalctl - Print log entries from the systemd journal"
+[2]: https://docs.aws.amazon.com/dcv/latest/adminguide/troubleshooting-logs.html?utm_source=chatgpt.com "Using the Log Files - Amazon DCV"
+[3]: https://manpages.ubuntu.com/manpages/resolute/man1/ssh-last.1.html?utm_source=chatgpt.com "Ubuntu Manpage: ssh-last - list last SSH sessions"
