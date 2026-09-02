@@ -1,0 +1,44 @@
+#!/bin/bash
+
+IDLE_DAYS=90
+
+echo "=========================================="
+echo "       EC2 Workbench SSH Access Check"
+echo "=========================================="
+
+# Get latest successful SSH login
+LAST_LOGIN=$(sudo journalctl _COMM=sshd \
+    --no-pager \
+    -o short-iso \
+    | grep -E "Accepted .* for " \
+    | tail -1)
+
+if [ -z "$LAST_LOGIN" ]; then
+    echo "Last SSH Login : No successful SSH login found"
+    echo "90-Day Status  : NO SSH ACCESS FOUND"
+    exit 0
+fi
+
+# Extract username
+LAST_USER=$(echo "$LAST_LOGIN" | \
+    sed -n 's/.*Accepted .* for \([^ ]*\) from .*/\1/p')
+
+echo "Last SSH Login : $LAST_LOGIN"
+echo "Last SSH User  : $LAST_USER"
+
+echo ""
+
+# Check whether there was a successful login in last 90 days
+RECENT_LOGIN=$(sudo journalctl _COMM=sshd \
+    --since "$IDLE_DAYS days ago" \
+    --no-pager \
+    | grep -E "Accepted .* for " \
+    | tail -1)
+
+if [ -n "$RECENT_LOGIN" ]; then
+    echo "90-Day Status  : ACCESSED"
+else
+    echo "90-Day Status  : NOT ACCESSED"
+fi
+
+echo "=========================================="
