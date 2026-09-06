@@ -1,0 +1,230 @@
+root@ip-10-36-70-92:/# sudo journalctl --no-pager | grep -i dcv
+Aug 31 14:17:57 ip-10-36-70-92 /usr/libexec/gdm-x-session[1540]: Amazon DCV: granting access to X server to user 'dcv'...
+Aug 31 14:17:57 ip-10-36-70-92 /usr/libexec/gdm-x-session[1541]: localuser:dcv being added to access control list
+Aug 31 14:18:20 ip-10-36-70-92 dcv.desktop[2635]: Amazon DCV: granting access to X server to user 'dcv'...
+Aug 31 14:18:20 ip-10-36-70-92 dcv.desktop[2637]: localuser:dcv being added to access control list
+Aug 31 14:26:01 ip-10-36-70-92 /usr/libexec/gdm-x-session[5225]: Amazon DCV: granting access to X server to user 'dcv'...
+Aug 31 14:26:01 ip-10-36-70-92 /usr/libexec/gdm-x-session[5226]: localuser:dcv being added to access control list
+Aug 31 14:26:03 ip-10-36-70-92 dcv.desktop[5490]: Amazon DCV: granting access to X server to user 'dcv'...
+Aug 31 14:26:03 ip-10-36-70-92 dcv.desktop[5492]: localuser:dcv being added to access control list
+Aug 31 14:26:11 ip-10-36-70-92 sudo[5665]:     root : PWD=/ ; USER=root ; COMMAND=/usr/bin/systemctl enable dcvserver
+Aug 31 14:26:12 ip-10-36-70-92 sudo[5759]:     root : PWD=/ ; USER=root ; COMMAND=/usr/bin/systemctl restart dcvserver
+Aug 31 14:26:12 ip-10-36-70-92 systemd[1]: Starting NICE DCV server daemon...
+Aug 31 14:26:12 ip-10-36-70-92 systemd[1]: Started NICE DCV server daemon.
+Aug 31 14:26:12 ip-10-36-70-92 sudo[5784]:     root : PWD=/ ; USER=root ; COMMAND=/usr/bin/systemctl enable dcv-session-manager-agent
+Aug 31 14:26:13 ip-10-36-70-92 sudo[5879]:     root : PWD=/ ; USER=root ; COMMAND=/usr/bin/systemctl restart dcv-session-manager-agent
+Aug 31 14:26:13 ip-10-36-70-92 systemd[1]: Started Agent component of DCV Session Manager.
+Aug 31 14:27:22 ip-10-36-70-92 systemd[1]: Stopping NICE DCV server daemon...
+Aug 31 14:27:22 ip-10-36-70-92 dcvserver[5775]: DIGEST-MD5 common mech free
+Aug 31 14:27:22 ip-10-36-70-92 systemd[1]: dcvserver.service: Deactivated successfully.
+Aug 31 14:27:22 ip-10-36-70-92 systemd[1]: Stopped NICE DCV server daemon.
+Aug 31 14:27:22 ip-10-36-70-92 systemd[1]: Starting NICE DCV server daemon...
+Aug 31 14:27:22 ip-10-36-70-92 systemd[1]: Started NICE DCV server daemon.
+Aug 31 14:27:22 ip-10-36-70-92 systemd[1]: Stopping Agent component of DCV Session Manager...
+Aug 31 14:27:22 ip-10-36-70-92 dcvsessionmanageragent[5893]: Error: Aborted
+Aug 31 14:27:22 ip-10-36-70-92 systemd[1]: dcv-session-manager-agent.service: Main process exited, code=exited, status=1/FAILURE
+Aug 31 14:27:22 ip-10-36-70-92 systemd[1]: dcv-session-manager-agent.service: Failed with result 'exit-code'.
+Aug 31 14:27:22 ip-10-36-70-92 systemd[1]: Stopped Agent component of DCV Session Manager.
+Aug 31 14:27:22 ip-10-36-70-92 systemd[1]: Started Agent component of DCV Session Manager.
+Aug 31 14:27:32 ip-10-36-70-92 systemd[1]: Stopping Agent component of DCV Session Manager...
+Aug 31 14:27:32 ip-10-36-70-92 systemd[1]: Stopping NICE DCV server daemon...
+Aug 31 14:27:32 ip-10-36-70-92 dcvsessionmanageragent[7326]: Error: Aborted
+Aug 31 14:27:32 ip-10-36-70-92 systemd[1]: dcv-session-manager-agent.service: Main process exited, code=exited, status=1/FAILURE
+Aug 31 14:27:32 ip-10-36-70-92 systemd[1]: dcv-session-manager-agent.service: Failed with result 'exit-code'.
+Aug 31 14:27:32 ip-10-36-70-92 systemd[1]: Stopped Agent component of DCV Session Manager.
+Aug 31 14:27:32 ip-10-36-70-92 dcvserver[7312]: DIGEST-MD5 common mech free
+Aug 31 14:27:32 ip-10-36-70-92 systemd[1]: dcvserver.service: Deactivated successfully.
+Aug 31 14:27:32 ip-10-36-70-92 systemd[1]: Stopped NICE DCV server daemon.
+Aug 31 14:28:08 ip-10-36-70-92 systemd[1]: Started Agent component of DCV Session Manager.
+Aug 31 14:28:08 ip-10-36-70-92 systemd[1]: Starting NICE DCV server daemon...
+Aug 31 14:28:09 ip-10-36-70-92 systemd[1]: Started NICE DCV server daemon.
+Aug 31 14:28:11 ip-10-36-70-92 /usr/libexec/gdm-x-session[1586]: Amazon DCV: granting access to X server to user 'dcv'...
+Aug 31 14:28:11 ip-10-36-70-92 /usr/libexec/gdm-x-session[1587]: localuser:dcv being added to access control list
+Aug 31 14:28:14 ip-10-36-70-92 dcv.desktop[1745]: Amazon DCV: granting access to X server to user 'dcv'...
+Aug 31 14:28:14 ip-10-36-70-92 dcv.desktop[1750]: localuser:dcv being added to access control list
+Aug 31 14:28:47 ip-10-36-70-92 dbus-daemon[666]: [system] Activating via systemd: service name='com.nicesoftware.DcvSessionLauncher' unit='dcvsessionlauncher.service' requested by ':1.22' (uid=995 pid=1052 comm="/usr/lib/x86_64-linux-gnu/dcv/dcvserver --service " label="unconfined")
+Aug 31 14:28:47 ip-10-36-70-92 systemd[1]: Starting Amazon DCV session launcher daemon...
+Aug 31 14:28:47 ip-10-36-70-92 dbus-daemon[666]: [system] Successfully activated service 'com.nicesoftware.DcvSessionLauncher'
+Aug 31 14:28:47 ip-10-36-70-92 systemd[1]: Started Amazon DCV session launcher daemon.
+Aug 31 14:32:07 ip-10-36-70-92 dbus-daemon[666]: [system] Activating via systemd: service name='org.freedesktop.timedate1' unit='dbus-org.freedesktop.timedate1.service' requested by ':1.77' (uid=0 pid=2297 comm="/usr/lib/x86_64-linux-gnu/dcv/dcvsessionlauncher " label="unconfined")
+Aug 31 14:32:57 ip-10-36-70-92 /usr/libexec/gdm-x-session[3102]: Amazon DCV: granting access to X server to user 'dcv'...
+Aug 31 14:32:57 ip-10-36-70-92 /usr/libexec/gdm-x-session[3103]: localuser:dcv being added to access control list
+Aug 31 14:34:04 ip-10-36-70-92 dbus-daemon[666]: [system] Activating via systemd: service name='org.freedesktop.timedate1' unit='dbus-org.freedesktop.timedate1.service' requested by ':1.77' (uid=0 pid=2297 comm="/usr/lib/x86_64-linux-gnu/dcv/dcvsessionlauncher " label="unconfined")
+Sep 01 05:30:03 ip-10-36-70-92 gsd-color[3609]: failed to connect to device: Failed to connect to missing device /org/freedesktop/ColorManager/devices/cups_DCV_Printer
+Sep 02 05:30:02 ip-10-36-70-92 gsd-color[3609]: failed to connect to device: Failed to connect to missing device /org/freedesktop/ColorManager/devices/cups_DCV_Printer
+Sep 02 15:17:31 ip-10-36-70-92 dbus-daemon[666]: [system] Activating via systemd: service name='org.freedesktop.timedate1' unit='dbus-org.freedesktop.timedate1.service' requested by ':1.77' (uid=0 pid=2297 comm="/usr/lib/x86_64-linux-gnu/dcv/dcvsessionlauncher " label="unconfined")
+Sep 02 17:30:37 ip-10-36-70-92 dbus-daemon[666]: [system] Activating via systemd: service name='org.freedesktop.timedate1' unit='dbus-org.freedesktop.timedate1.service' requested by ':1.77' (uid=0 pid=2297 comm="/usr/lib/x86_64-linux-gnu/dcv/dcvsessionlauncher " label="unconfined")
+Sep 02 18:06:02 ip-10-36-70-92 systemd[1]: Stopping Agent component of DCV Session Manager...
+Sep 02 18:06:02 ip-10-36-70-92 systemd[1]: Stopping NICE DCV server daemon...
+Sep 02 18:06:02 ip-10-36-70-92 systemd[1]: Stopping Amazon DCV session launcher daemon...
+Sep 02 18:06:02 ip-10-36-70-92 dcvserver[1052]: DIGEST-MD5 common mech free
+Sep 02 18:06:02 ip-10-36-70-92 dcvsessionmanageragent[1035]: Error: Aborted
+Sep 02 18:06:02 ip-10-36-70-92 systemd[1]: dcv-session-manager-agent.service: Main process exited, code=exited, status=1/FAILURE
+Sep 02 18:06:02 ip-10-36-70-92 systemd[1]: dcv-session-manager-agent.service: Failed with result 'exit-code'.
+Sep 02 18:06:02 ip-10-36-70-92 systemd[1]: Stopped Agent component of DCV Session Manager.
+Sep 02 18:06:02 ip-10-36-70-92 systemd[1]: dcv-session-manager-agent.service: Consumed 23min 56.479s CPU time.
+Sep 02 18:06:02 ip-10-36-70-92 systemd[1]: dcvsessionlauncher.service: Deactivated successfully.
+Sep 02 18:06:02 ip-10-36-70-92 systemd[1]: Stopped Amazon DCV session launcher daemon.
+Sep 02 18:06:02 ip-10-36-70-92 systemd[1]: dcvserver.service: Deactivated successfully.
+Sep 02 18:06:02 ip-10-36-70-92 systemd[1]: Stopped NICE DCV server daemon.
+Sep 02 18:06:02 ip-10-36-70-92 systemd[1]: dcvserver.service: Consumed 16min 5.330s CPU time.
+Sep 02 18:06:37 ip-10-36-70-92 systemd[1]: Started Agent component of DCV Session Manager.
+Sep 02 18:06:37 ip-10-36-70-92 systemd[1]: Starting NICE DCV server daemon...
+Sep 02 18:06:38 ip-10-36-70-92 systemd[1]: Started NICE DCV server daemon.
+Sep 02 18:06:40 ip-10-36-70-92 /usr/libexec/gdm-x-session[1602]: Amazon DCV: granting access to X server to user 'dcv'...
+Sep 02 18:06:40 ip-10-36-70-92 /usr/libexec/gdm-x-session[1603]: localuser:dcv being added to access control list
+Sep 02 18:06:44 ip-10-36-70-92 dcv.desktop[2135]: Amazon DCV: granting access to X server to user 'dcv'...
+Sep 02 18:06:44 ip-10-36-70-92 dcv.desktop[2141]: localuser:dcv being added to access control list
+Sep 02 18:06:45 ip-10-36-70-92 sudo[2251]:     root : PWD=/ ; USER=root ; COMMAND=/usr/bin/systemctl is-active dcvserver
+Sep 02 18:06:47 ip-10-36-70-92 dbus-daemon[679]: [system] Activating via systemd: service name='com.nicesoftware.DcvSessionLauncher' unit='dcvsessionlauncher.service' requested by ':1.30' (uid=995 pid=1004 comm="/usr/lib/x86_64-linux-gnu/dcv/dcvserver --service " label="unconfined")
+Sep 02 18:06:47 ip-10-36-70-92 systemd[1]: Starting Amazon DCV session launcher daemon...
+Sep 02 18:06:47 ip-10-36-70-92 dbus-daemon[679]: [system] Successfully activated service 'com.nicesoftware.DcvSessionLauncher'
+Sep 02 18:06:47 ip-10-36-70-92 systemd[1]: Started Amazon DCV session launcher daemon.
+Sep 02 18:09:18 ip-10-36-70-92 dbus-daemon[679]: [system] Activating via systemd: service name='org.freedesktop.timedate1' unit='dbus-org.freedesktop.timedate1.service' requested by ':1.75' (uid=0 pid=2320 comm="/usr/lib/x86_64-linux-gnu/dcv/dcvsessionlauncher " label="unconfined")
+Sep 02 18:10:21 ip-10-36-70-92 /usr/libexec/gdm-x-session[3065]: Amazon DCV: granting access to X server to user 'dcv'...
+Sep 02 18:10:21 ip-10-36-70-92 /usr/libexec/gdm-x-session[3066]: localuser:dcv being added to access control list
+Sep 02 20:32:43 ip-10-36-70-92 dbus-daemon[679]: [system] Activating via systemd: service name='org.freedesktop.timedate1' unit='dbus-org.freedesktop.timedate1.service' requested by ':1.75' (uid=0 pid=2320 comm="/usr/lib/x86_64-linux-gnu/dcv/dcvsessionlauncher " label="unconfined")
+Sep 02 22:09:06 ip-10-36-70-92 dcvserver[1004]: DIGEST-MD5 common mech free
+Sep 02 22:09:06 ip-10-36-70-92 dcvsessionmanageragent[977]: Error: Aborted
+Sep 02 22:09:06 ip-10-36-70-92 systemd[1]: Stopping Agent component of DCV Session Manager...
+Sep 02 22:09:06 ip-10-36-70-92 systemd[1]: Stopping NICE DCV server daemon...
+Sep 02 22:09:06 ip-10-36-70-92 systemd[1]: Stopping Amazon DCV session launcher daemon...
+Sep 02 22:09:06 ip-10-36-70-92 systemd[1]: dcv-session-manager-agent.service: Main process exited, code=exited, status=1/FAILURE
+Sep 02 22:09:06 ip-10-36-70-92 systemd[1]: dcv-session-manager-agent.service: Failed with result 'exit-code'.
+Sep 02 22:09:06 ip-10-36-70-92 systemd[1]: Stopped Agent component of DCV Session Manager.
+Sep 02 22:09:06 ip-10-36-70-92 systemd[1]: dcv-session-manager-agent.service: Consumed 1min 58.552s CPU time.
+Sep 02 22:09:06 ip-10-36-70-92 systemd[1]: dcvserver.service: Deactivated successfully.
+Sep 02 22:09:06 ip-10-36-70-92 systemd[1]: Stopped NICE DCV server daemon.
+Sep 02 22:09:06 ip-10-36-70-92 systemd[1]: dcvserver.service: Consumed 1min 34.004s CPU time.
+Sep 02 22:09:06 ip-10-36-70-92 systemd[1]: dcvsessionlauncher.service: Deactivated successfully.
+Sep 02 22:09:06 ip-10-36-70-92 systemd[1]: Stopped Amazon DCV session launcher daemon.
+Sep 06 15:09:00 ip-10-36-70-92 systemd[1]: Started Agent component of DCV Session Manager.
+Sep 06 15:09:00 ip-10-36-70-92 systemd[1]: Starting NICE DCV server daemon...
+Sep 06 15:09:02 ip-10-36-70-92 systemd[1]: Started NICE DCV server daemon.
+Sep 06 15:09:04 ip-10-36-70-92 /usr/libexec/gdm-x-session[1631]: Amazon DCV: granting access to X server to user 'dcv'...
+Sep 06 15:09:04 ip-10-36-70-92 /usr/libexec/gdm-x-session[1632]: localuser:dcv being added to access control list
+Sep 06 15:09:09 ip-10-36-70-92 dcv.desktop[2126]: Amazon DCV: granting access to X server to user 'dcv'...
+Sep 06 15:09:09 ip-10-36-70-92 dcv.desktop[2130]: localuser:dcv being added to access control list
+Sep 06 15:09:10 ip-10-36-70-92 sudo[2290]:     root : PWD=/ ; USER=root ; COMMAND=/usr/bin/systemctl is-active dcvserver
+Sep 06 15:09:12 ip-10-36-70-92 dbus-daemon[681]: [system] Activating via systemd: service name='com.nicesoftware.DcvSessionLauncher' unit='dcvsessionlauncher.service' requested by ':1.32' (uid=995 pid=1044 comm="/usr/lib/x86_64-linux-gnu/dcv/dcvserver --service " label="unconfined")
+Sep 06 15:09:12 ip-10-36-70-92 systemd[1]: Starting Amazon DCV session launcher daemon...
+Sep 06 15:09:12 ip-10-36-70-92 dbus-daemon[681]: [system] Successfully activated service 'com.nicesoftware.DcvSessionLauncher'
+Sep 06 15:09:12 ip-10-36-70-92 systemd[1]: Started Amazon DCV session launcher daemon.
+Sep 06 15:31:36 ip-10-36-70-92 systemd[1]: Stopping Agent component of DCV Session Manager...
+Sep 06 15:31:36 ip-10-36-70-92 systemd[1]: Stopping NICE DCV server daemon...
+Sep 06 15:31:36 ip-10-36-70-92 systemd[1]: Stopping Amazon DCV session launcher daemon...
+Sep 06 15:31:36 ip-10-36-70-92 dcvserver[1044]: DIGEST-MD5 common mech free
+Sep 06 15:31:36 ip-10-36-70-92 dcvsessionmanageragent[984]: Error: Aborted
+Sep 06 15:31:36 ip-10-36-70-92 systemd[1]: dcv-session-manager-agent.service: Main process exited, code=exited, status=1/FAILURE
+Sep 06 15:31:36 ip-10-36-70-92 systemd[1]: dcv-session-manager-agent.service: Failed with result 'exit-code'.
+Sep 06 15:31:36 ip-10-36-70-92 systemd[1]: Stopped Agent component of DCV Session Manager.
+Sep 06 15:31:36 ip-10-36-70-92 systemd[1]: dcv-session-manager-agent.service: Consumed 10.446s CPU time.
+Sep 06 15:31:36 ip-10-36-70-92 systemd[1]: dcvserver.service: Deactivated successfully.
+Sep 06 15:31:36 ip-10-36-70-92 systemd[1]: Stopped NICE DCV server daemon.
+Sep 06 15:31:36 ip-10-36-70-92 systemd[1]: dcvserver.service: Consumed 6.318s CPU time.
+Sep 06 15:31:36 ip-10-36-70-92 systemd[1]: dcvsessionlauncher.service: Deactivated successfully.
+Sep 06 15:31:36 ip-10-36-70-92 systemd[1]: Stopped Amazon DCV session launcher daemon.
+Sep 06 15:36:51 ip-10-36-70-92 systemd[1]: Started Agent component of DCV Session Manager.
+Sep 06 15:36:51 ip-10-36-70-92 systemd[1]: Starting NICE DCV server daemon...
+Sep 06 15:36:53 ip-10-36-70-92 systemd[1]: Started NICE DCV server daemon.
+Sep 06 15:36:54 ip-10-36-70-92 /usr/libexec/gdm-x-session[1531]: Amazon DCV: granting access to X server to user 'dcv'...
+Sep 06 15:36:54 ip-10-36-70-92 /usr/libexec/gdm-x-session[1532]: localuser:dcv being added to access control list
+Sep 06 15:36:57 ip-10-36-70-92 dcv.desktop[1798]: Amazon DCV: granting access to X server to user 'dcv'...
+Sep 06 15:36:58 ip-10-36-70-92 dcv.desktop[1799]: localuser:dcv being added to access control list
+Sep 06 15:36:59 ip-10-36-70-92 sudo[2000]:     root : PWD=/ ; USER=root ; COMMAND=/usr/bin/systemctl is-active dcvserver
+Sep 06 15:37:01 ip-10-36-70-92 dbus-daemon[681]: [system] Activating via systemd: service name='com.nicesoftware.DcvSessionLauncher' unit='dcvsessionlauncher.service' requested by ':1.31' (uid=995 pid=1013 comm="/usr/lib/x86_64-linux-gnu/dcv/dcvserver --service " label="unconfined")
+Sep 06 15:37:01 ip-10-36-70-92 systemd[1]: Starting Amazon DCV session launcher daemon...
+Sep 06 15:37:02 ip-10-36-70-92 dbus-daemon[681]: [system] Successfully activated service 'com.nicesoftware.DcvSessionLauncher'
+Sep 06 15:37:02 ip-10-36-70-92 systemd[1]: Started Amazon DCV session launcher daemon.
+Sep 06 16:28:23 ip-10-36-70-92 systemd[1]: Stopping Agent component of DCV Session Manager...
+Sep 06 16:28:23 ip-10-36-70-92 systemd[1]: Stopping NICE DCV server daemon...
+Sep 06 16:28:23 ip-10-36-70-92 systemd[1]: Stopping Amazon DCV session launcher daemon...
+Sep 06 16:28:23 ip-10-36-70-92 dcvsessionmanageragent[991]: Error: Aborted
+Sep 06 16:28:23 ip-10-36-70-92 systemd[1]: dcv-session-manager-agent.service: Main process exited, code=exited, status=1/FAILURE
+Sep 06 16:28:23 ip-10-36-70-92 systemd[1]: dcv-session-manager-agent.service: Failed with result 'exit-code'.
+Sep 06 16:28:23 ip-10-36-70-92 systemd[1]: Stopped Agent component of DCV Session Manager.
+Sep 06 16:28:23 ip-10-36-70-92 systemd[1]: dcv-session-manager-agent.service: Consumed 22.785s CPU time.
+Sep 06 16:28:23 ip-10-36-70-92 systemd[1]: dcvsessionlauncher.service: Deactivated successfully.
+Sep 06 16:28:23 ip-10-36-70-92 systemd[1]: Stopped Amazon DCV session launcher daemon.
+Sep 06 16:28:23 ip-10-36-70-92 dcvserver[1013]: DIGEST-MD5 common mech free
+Sep 06 16:28:23 ip-10-36-70-92 systemd[1]: dcvserver.service: Deactivated successfully.
+Sep 06 16:28:23 ip-10-36-70-92 systemd[1]: Stopped NICE DCV server daemon.
+Sep 06 16:28:23 ip-10-36-70-92 systemd[1]: dcvserver.service: Consumed 13.468s CPU time.
+Sep 06 19:43:40 ip-10-36-70-92 systemd[1]: Started Agent component of DCV Session Manager.
+Sep 06 19:43:40 ip-10-36-70-92 systemd[1]: Starting NICE DCV server daemon...
+Sep 06 19:43:42 ip-10-36-70-92 systemd[1]: Started NICE DCV server daemon.
+Sep 06 19:43:44 ip-10-36-70-92 /usr/libexec/gdm-x-session[1609]: Amazon DCV: granting access to X server to user 'dcv'...
+Sep 06 19:43:44 ip-10-36-70-92 /usr/libexec/gdm-x-session[1610]: localuser:dcv being added to access control list
+Sep 06 19:43:48 ip-10-36-70-92 dcv.desktop[2092]: Amazon DCV: granting access to X server to user 'dcv'...
+Sep 06 19:43:48 ip-10-36-70-92 dcv.desktop[2096]: localuser:dcv being added to access control list
+Sep 06 19:43:50 ip-10-36-70-92 sudo[2265]:     root : PWD=/ ; USER=root ; COMMAND=/usr/bin/systemctl is-active dcvserver
+Sep 06 19:43:51 ip-10-36-70-92 dbus-daemon[678]: [system] Activating via systemd: service name='com.nicesoftware.DcvSessionLauncher' unit='dcvsessionlauncher.service' requested by ':1.31' (uid=995 pid=1015 comm="/usr/lib/x86_64-linux-gnu/dcv/dcvserver --service " label="unconfined")
+Sep 06 19:43:51 ip-10-36-70-92 systemd[1]: Starting Amazon DCV session launcher daemon...
+Sep 06 19:43:51 ip-10-36-70-92 dbus-daemon[678]: [system] Successfully activated service 'com.nicesoftware.DcvSessionLauncher'
+Sep 06 19:43:51 ip-10-36-70-92 systemd[1]: Started Amazon DCV session launcher daemon.
+Sep 06 19:51:01 ip-10-36-70-92 dcvsessionmanageragent[991]: Error: Aborted
+Sep 06 19:51:01 ip-10-36-70-92 systemd[1]: Stopping Agent component of DCV Session Manager...
+Sep 06 19:51:01 ip-10-36-70-92 systemd[1]: Stopping NICE DCV server daemon...
+Sep 06 19:51:01 ip-10-36-70-92 systemd[1]: Stopping Amazon DCV session launcher daemon...
+Sep 06 19:51:01 ip-10-36-70-92 systemd[1]: dcv-session-manager-agent.service: Main process exited, code=exited, status=1/FAILURE
+Sep 06 19:51:01 ip-10-36-70-92 systemd[1]: dcv-session-manager-agent.service: Failed with result 'exit-code'.
+Sep 06 19:51:01 ip-10-36-70-92 systemd[1]: Stopped Agent component of DCV Session Manager.
+Sep 06 19:51:01 ip-10-36-70-92 systemd[1]: dcv-session-manager-agent.service: Consumed 3.641s CPU time.
+Sep 06 19:51:01 ip-10-36-70-92 systemd[1]: dcvsessionlauncher.service: Deactivated successfully.
+Sep 06 19:51:01 ip-10-36-70-92 systemd[1]: Stopped Amazon DCV session launcher daemon.
+Sep 06 19:51:02 ip-10-36-70-92 dcvserver[1015]: DIGEST-MD5 common mech free
+Sep 06 19:51:02 ip-10-36-70-92 systemd[1]: dcvserver.service: Deactivated successfully.
+Sep 06 19:51:02 ip-10-36-70-92 systemd[1]: Stopped NICE DCV server daemon.
+Sep 06 19:51:02 ip-10-36-70-92 systemd[1]: dcvserver.service: Consumed 1.753s CPU time.
+Sep 06 19:59:15 ip-10-36-70-92 systemd[1]: Started Agent component of DCV Session Manager.
+Sep 06 19:59:15 ip-10-36-70-92 systemd[1]: Starting NICE DCV server daemon...
+Sep 06 19:59:17 ip-10-36-70-92 systemd[1]: Started NICE DCV server daemon.
+Sep 06 19:59:18 ip-10-36-70-92 /usr/libexec/gdm-x-session[1588]: Amazon DCV: granting access to X server to user 'dcv'...
+Sep 06 19:59:18 ip-10-36-70-92 /usr/libexec/gdm-x-session[1590]: localuser:dcv being added to access control list
+Sep 06 19:59:22 ip-10-36-70-92 dcv.desktop[2078]: Amazon DCV: granting access to X server to user 'dcv'...
+Sep 06 19:59:22 ip-10-36-70-92 dcv.desktop[2081]: localuser:dcv being added to access control list
+Sep 06 19:59:24 ip-10-36-70-92 sudo[2277]:     root : PWD=/ ; USER=root ; COMMAND=/usr/bin/systemctl is-active dcvserver
+Sep 06 19:59:25 ip-10-36-70-92 dbus-daemon[680]: [system] Activating via systemd: service name='com.nicesoftware.DcvSessionLauncher' unit='dcvsessionlauncher.service' requested by ':1.31' (uid=995 pid=1026 comm="/usr/lib/x86_64-linux-gnu/dcv/dcvserver --service " label="unconfined")
+Sep 06 19:59:25 ip-10-36-70-92 systemd[1]: Starting Amazon DCV session launcher daemon...
+Sep 06 19:59:25 ip-10-36-70-92 dbus-daemon[680]: [system] Successfully activated service 'com.nicesoftware.DcvSessionLauncher'
+Sep 06 19:59:25 ip-10-36-70-92 systemd[1]: Started Amazon DCV session launcher daemon.
+Sep 06 20:09:33 ip-10-36-70-92 dbus-daemon[680]: [system] Activating via systemd: service name='org.freedesktop.timedate1' unit='dbus-org.freedesktop.timedate1.service' requested by ':1.74' (uid=0 pid=2336 comm="/usr/lib/x86_64-linux-gnu/dcv/dcvsessionlauncher " label="unconfined")
+Sep 06 20:13:07 ip-10-36-70-92 /usr/libexec/gdm-x-session[4753]: Amazon DCV: granting access to X server to user 'dcv'...
+Sep 06 20:13:07 ip-10-36-70-92 /usr/libexec/gdm-x-session[4754]: localuser:dcv being added to access control list
+Sep 06 20:19:35 ip-10-36-70-92 dbus-daemon[680]: [system] Activating via systemd: service name='org.freedesktop.timedate1' unit='dbus-org.freedesktop.timedate1.service' requested by ':1.74' (uid=0 pid=2336 comm="/usr/lib/x86_64-linux-gnu/dcv/dcvsessionlauncher " label="unconfined")
+Sep 06 20:22:41 ip-10-36-70-92 dbus-daemon[680]: [system] Activating via systemd: service name='org.freedesktop.timedate1' unit='dbus-org.freedesktop.timedate1.service' requested by ':1.74' (uid=0 pid=2336 comm="/usr/lib/x86_64-linux-gnu/dcv/dcvsessionlauncher " label="unconfined")
+Sep 06 20:24:42 ip-10-36-70-92 dbus-daemon[680]: [system] Activating via systemd: service name='org.freedesktop.timedate1' unit='dbus-org.freedesktop.timedate1.service' requested by ':1.74' (uid=0 pid=2336 comm="/usr/lib/x86_64-linux-gnu/dcv/dcvsessionlauncher " label="unconfined")
+Sep 06 20:25:08 ip-10-36-70-92 systemd[1]: Stopping Agent component of DCV Session Manager...
+Sep 06 20:25:08 ip-10-36-70-92 systemd[1]: Stopping NICE DCV server daemon...
+Sep 06 20:25:08 ip-10-36-70-92 dcvserver[1026]: DIGEST-MD5 common mech free
+Sep 06 20:25:08 ip-10-36-70-92 systemd[1]: Stopping Amazon DCV session launcher daemon...
+Sep 06 20:25:08 ip-10-36-70-92 dcvsessionmanageragent[993]: Error: Aborted
+Sep 06 20:25:08 ip-10-36-70-92 systemd[1]: dcv-session-manager-agent.service: Main process exited, code=exited, status=1/FAILURE
+Sep 06 20:25:08 ip-10-36-70-92 systemd[1]: dcv-session-manager-agent.service: Failed with result 'exit-code'.
+Sep 06 20:25:08 ip-10-36-70-92 systemd[1]: Stopped Agent component of DCV Session Manager.
+Sep 06 20:25:08 ip-10-36-70-92 systemd[1]: dcv-session-manager-agent.service: Consumed 11.642s CPU time.
+Sep 06 20:25:08 ip-10-36-70-92 systemd[1]: dcvserver.service: Deactivated successfully.
+Sep 06 20:25:08 ip-10-36-70-92 systemd[1]: Stopped NICE DCV server daemon.
+Sep 06 20:25:08 ip-10-36-70-92 systemd[1]: dcvserver.service: Consumed 13.420s CPU time.
+Sep 06 20:25:08 ip-10-36-70-92 systemd[1]: dcvsessionlauncher.service: Deactivated successfully.
+Sep 06 20:25:08 ip-10-36-70-92 systemd[1]: Stopped Amazon DCV session launcher daemon.
+Sep 06 20:45:42 ip-10-36-70-92 systemd[1]: Started Agent component of DCV Session Manager.
+Sep 06 20:45:42 ip-10-36-70-92 systemd[1]: Starting NICE DCV server daemon...
+Sep 06 20:45:44 ip-10-36-70-92 systemd[1]: Started NICE DCV server daemon.
+Sep 06 20:45:46 ip-10-36-70-92 /usr/libexec/gdm-x-session[1588]: Amazon DCV: granting access to X server to user 'dcv'...
+Sep 06 20:45:46 ip-10-36-70-92 /usr/libexec/gdm-x-session[1589]: localuser:dcv being added to access control list
+Sep 06 20:45:49 ip-10-36-70-92 dcv.desktop[2101]: Amazon DCV: granting access to X server to user 'dcv'...
+Sep 06 20:45:49 ip-10-36-70-92 dcv.desktop[2103]: localuser:dcv being added to access control list
+Sep 06 20:45:51 ip-10-36-70-92 sudo[2274]:     root : PWD=/ ; USER=root ; COMMAND=/usr/bin/systemctl is-active dcvserver
+Sep 06 20:45:53 ip-10-36-70-92 dbus-daemon[680]: [system] Activating via systemd: service name='com.nicesoftware.DcvSessionLauncher' unit='dcvsessionlauncher.service' requested by ':1.30' (uid=995 pid=1025 comm="/usr/lib/x86_64-linux-gnu/dcv/dcvserver --service " label="unconfined")
+Sep 06 20:45:53 ip-10-36-70-92 systemd[1]: Starting Amazon DCV session launcher daemon...
+Sep 06 20:45:53 ip-10-36-70-92 dbus-daemon[680]: [system] Successfully activated service 'com.nicesoftware.DcvSessionLauncher'
+Sep 06 20:45:53 ip-10-36-70-92 systemd[1]: Started Amazon DCV session launcher daemon.
+Sep 06 21:47:57 ip-10-36-70-92 dbus-daemon[680]: [system] Activating via systemd: service name='org.freedesktop.timedate1' unit='dbus-org.freedesktop.timedate1.service' requested by ':1.76' (uid=0 pid=2336 comm="/usr/lib/x86_64-linux-gnu/dcv/dcvsessionlauncher " label="unconfined")
+Sep 06 21:52:53 ip-10-36-70-92 /usr/libexec/gdm-x-session[13300]: Amazon DCV: granting access to X server to user 'dcv'...
+Sep 06 21:52:53 ip-10-36-70-92 /usr/libexec/gdm-x-session[13301]: localuser:dcv being added to access control list
+Sep 06 21:55:58 ip-10-36-70-92 dbus-daemon[680]: [system] Activating via systemd: service name='org.freedesktop.timedate1' unit='dbus-org.freedesktop.timedate1.service' requested by ':1.76' (uid=0 pid=2336 comm="/usr/lib/x86_64-linux-gnu/dcv/dcvsessionlauncher " label="unconfined")
+Sep 06 22:00:38 ip-10-36-70-92 dbus-daemon[680]: [system] Activating via systemd: service name='org.freedesktop.timedate1' unit='dbus-org.freedesktop.timedate1.service' requested by ':1.76' (uid=0 pid=2336 comm="/usr/lib/x86_64-linux-gnu/dcv/dcvsessionlauncher " label="unconfined")
+Sep 06 22:05:03 ip-10-36-70-92 dbus-daemon[680]: [system] Activating via systemd: service name='org.freedesktop.timedate1' unit='dbus-org.freedesktop.timedate1.service' requested by ':1.76' (uid=0 pid=2336 comm="/usr/lib/x86_64-linux-gnu/dcv/dcvsessionlauncher " label="unconfined")
+Sep 06 22:14:00 ip-10-36-70-92 dbus-daemon[680]: [system] Activating via systemd: service name='org.freedesktop.timedate1' unit='dbus-org.freedesktop.timedate1.service' requested by ':1.76' (uid=0 pid=2336 comm="/usr/lib/x86_64-linux-gnu/dcv/dcvsessionlauncher " label="unconfined")
+root@ip-10-36-70-92:/#
