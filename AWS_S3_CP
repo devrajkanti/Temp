@@ -1,0 +1,243 @@
+```powershell
+# ============================================================
+# S3 -> EC2 Download Performance Test
+# ============================================================
+
+$region = "eu-west-1"
+
+$downloadDirectory = "C:\Temp\S3DownloadTest"
+
+# ------------------------------------------------------------
+# List of S3 objects
+# ------------------------------------------------------------
+$s3Objects = @(
+    "s3://my-bucket/test/file1.zip",
+    "s3://my-bucket/test/file2.zip",
+    "s3://my-bucket/test/file3.zip",
+    "s3://my-bucket/test/file4.zip",
+    "s3://my-bucket/test/file5.zip"
+)
+
+# ------------------------------------------------------------
+# Create download directory
+# ------------------------------------------------------------
+if (-not (Test-Path $downloadDirectory)) {
+    New-Item -ItemType Directory -Path $downloadDirectory -Force | Out-Null
+}
+
+# ------------------------------------------------------------
+# Results collection
+# ------------------------------------------------------------
+$results = @()
+
+Write-Host ""
+Write-Host "============================================================"
+Write-Host "S3 -> EC2 DOWNLOAD PERFORMANCE TEST"
+Write-Host "============================================================"
+Write-Host ""
+
+foreach ($s3Object in $s3Objects) {
+
+    $localFile = $null
+
+    Write-Host "------------------------------------------------------------"
+    Write-Host "S3 Object : $s3Object"
+    Write-Host "------------------------------------------------------------"
+
+    try {
+
+        # ----------------------------------------------------
+        # Extract bucket and key
+        # ----------------------------------------------------
+        if ($s3Object -notmatch "^s3://([^/]+)/(.+)$") {
+            throw "Invalid S3 object path: $s3Object"
+        }
+
+        $bucket = $Matches[1]
+        $key    = $Matches[2]
+
+        # ----------------------------------------------------
+        # Get file name
+        # ----------------------------------------------------
+        $fileName = Split-Path $key -Leaf
+
+        $localFile = Join-Path $downloadDirectory $fileName
+
+        # Remove existing file
+        if (Test-Path $localFile) {
+            Remove-Item $localFile -Force
+        }
+
+        # ----------------------------------------------------
+        # Get S3 object size
+        # ----------------------------------------------------
+        Write-Host "Getting S3 object size..."
+
+        $objectSizeBytes = aws s3api head-object `
+            --bucket $bucket `
+            --key $key `
+            --region $region `
+            --query "ContentLength" `
+            --output text
+
+        if ($LASTEXITCODE -ne 0) {
+            throw "Unable to retrieve S3 object metadata."
+        }
+
+        $objectSizeBytes = [double]$objectSizeBytes
+        $objectSizeMB = $objectSizeBytes / 1MB
+
+        Write-Host ("S3 Object Size : {0:N2} MB" -f $objectSizeMB)
+
+        # ----------------------------------------------------
+        # Download using AWS CLI
+        #
+        # Measure-Command measures ONLY aws s3 cp.
+        #
+        # No manual chunking.
+        # No parallel downloads.
+        # No Range requests.
+        # No custom multipart logic.
+        # ----------------------------------------------------
+        Write-Host "Starting download..."
+
+        $downloadTime = Measure-Command {
+
+            aws s3 cp $s3Object $localFile `
+                --region $region
+
+        }
+
+        $awsExitCode = $LASTEXITCODE
+
+        # ----------------------------------------------------
+        # Check AWS CLI result
+        # ----------------------------------------------------
+        if ($awsExitCode -ne 0) {
+            throw "AWS CLI download failed with exit code $awsExitCode."
+        }
+
+        if (-not (Test-Path $localFile)) {
+            throw "AWS CLI reported success, but downloaded file was not found."
+        }
+
+        # ----------------------------------------------------
+        # Get actual downloaded file size
+        # ----------------------------------------------------
+        $downloadedFile = Get-Item $localFile
+
+        $downloadedSizeBytes = [double]$downloadedFile.Length
+        $downloadedSizeMB = $downloadedSizeBytes / 1MB
+
+        # ----------------------------------------------------
+        # Download time
+        # ----------------------------------------------------
+        $timeSeconds = $downloadTime.TotalSeconds
+
+        # ----------------------------------------------------
+        # Calculate download speed
+        #
+        # Actual bytes written to EC2 filesystem / time
+        # ----------------------------------------------------
+        if ($timeSeconds -gt 0) {
+
+            $downloadSpeedMBps =
+                $downloadedSizeMB / $timeSeconds
+
+        }
+        else {
+
+            $downloadSpeedMBps = 0
+        }
+
+        # ----------------------------------------------------
+        # Display results
+        # ----------------------------------------------------
+        Write-Host ""
+        Write-Host "Download completed successfully."
+        Write-Host ("S3 Object Size  : {0:N2} MB" -f $objectSizeMB)
+        Write-Host ("Downloaded Size : {0:N2} MB" -f $downloadedSizeMB)
+        Write-Host ("Time Taken      : {0:N3} seconds" -f $timeSeconds)
+        Write-Host ("Download Speed  : {0:N2} MB/s" -f $downloadSpeedMBps)
+
+        # ----------------------------------------------------
+        # Store result
+        # ----------------------------------------------------
+        $results += [PSCustomObject]@{
+
+            S3Object     = $s3Object
+            FileName     = $fileName
+            FileSizeMB   = [math]::Round($objectSizeMB, 2)
+            DownloadedMB = [math]::Round($downloadedSizeMB, 2)
+            TimeSeconds  = [math]::Round($timeSeconds, 3)
+            SpeedMBps    = [math]::Round($downloadSpeedMBps, 2)
+            Status       = "Success"
+        }
+
+    }
+    catch {
+
+        Write-Host ""
+        Write-Host "ERROR: $($_.Exception.Message)"
+
+        $results += [PSCustomObject]@{
+
+            S3Object     = $s3Object
+            FileName     = if ($localFile) {
+                               Split-Path $localFile -Leaf
+                           }
+                           else {
+                               $null
+                           }
+            FileSizeMB   = $null
+            DownloadedMB = $null
+            TimeSeconds  = $null
+            SpeedMBps    = $null
+            Status       = "Failed"
+        }
+    }
+    finally {
+
+        # ----------------------------------------------------
+        # Delete downloaded file
+        # ----------------------------------------------------
+        if ($localFile -and (Test-Path $localFile)) {
+
+            Write-Host "Deleting downloaded file..."
+
+            Remove-Item $localFile -Force -ErrorAction SilentlyContinue
+
+            if (-not (Test-Path $localFile)) {
+                Write-Host "File deleted successfully."
+            }
+            else {
+                Write-Host "WARNING: Unable to delete downloaded file."
+            }
+        }
+
+        Write-Host ""
+    }
+}
+
+# ============================================================
+# Final Summary
+# ============================================================
+
+Write-Host ""
+Write-Host "============================================================"
+Write-Host "DOWNLOAD TEST SUMMARY"
+Write-Host "============================================================"
+Write-Host ""
+
+$results | Format-Table `
+    FileName,
+    FileSizeMB,
+    DownloadedMB,
+    TimeSeconds,
+    SpeedMBps,
+    Status `
+    -AutoSize
+
+Write-Host ""
+Write-Host "Test completed."
+```
