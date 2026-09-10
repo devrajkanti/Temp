@@ -1,0 +1,39 @@
+# Get EC2 instance type from Instance Metadata Service (IMDSv2)
+
+$token = Invoke-RestMethod `
+    -Method PUT `
+    -Uri "http://169.254.169.254/latest/api/token" `
+    -Headers @{"X-aws-ec2-metadata-token-ttl-seconds" = "21600"}
+
+$instanceType = Invoke-RestMethod `
+    -Method GET `
+    -Uri "http://169.254.169.254/latest/meta-data/instance-type" `
+    -Headers @{"X-aws-ec2-metadata-token" = $token}
+
+# AWS GPU instance families
+$gpuFamilies = @(
+    "p2",
+    "p3",
+    "p4",
+    "p5",
+    "g3",
+    "g4ad",
+    "g4dn",
+    "g5",
+    "g5g",
+    "g6",
+    "g6e",
+    "inf1",
+    "inf2",
+    "trn1",
+    "trn2"
+)
+
+$family = $instanceType.Split('.')[0]
+
+if ($gpuFamilies -contains $family) {
+    Write-Output "GPU"
+}
+else {
+    Write-Output "NON-GPU"
+}
