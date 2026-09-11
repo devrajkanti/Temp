@@ -1,0 +1,57 @@
+$ErrorActionPreference = "Stop"
+
+try {
+    # -----------------------------
+    # Get IMDSv2 token
+    # -----------------------------
+    $token = Invoke-RestMethod `
+        -Method PUT `
+        -Uri "http://169.254.169.254/latest/api/token" `
+        -Headers @{
+            "X-aws-ec2-metadata-token-ttl-seconds" = "21600"
+        }
+
+    # -----------------------------
+    # Get instance type
+    # -----------------------------
+    $instanceType = (Invoke-RestMethod `
+        -Method GET `
+        -Uri "http://169.254.169.254/latest/meta-data/instance-type" `
+        -Headers @{
+            "X-aws-ec2-metadata-token" = $token
+        }).Trim()
+
+    Write-Output "Instance Type: $instanceType"
+
+    # -----------------------------
+    # Ask AWS whether it has a GPU
+    # -----------------------------
+    $gpuName = aws ec2 describe-instance-types `
+        --instance-types $instanceType `
+        --query "InstanceTypes[0].GpuInfo.Gpus[0].Name" `
+        --output text `
+        --no-cli-pager
+
+    $gpuName = $gpuName.Trim()
+
+    # -----------------------------
+    # Check result
+    # -----------------------------
+    if ([string]::IsNullOrWhiteSpace($gpuName) -or
+        $gpuName -eq "None") {
+
+        Write-Output "GPU: False"
+        exit 1
+    }
+    else {
+
+        Write-Output "GPU: True"
+        Write-Output "GPU Name: $gpuName"
+        exit 0
+    }
+}
+catch {
+    Write-Output "GPU check failed."
+    Write-Output "Error: $($_.Exception.Message)"
+    exit 2
+}
