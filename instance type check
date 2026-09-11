@@ -1,0 +1,53 @@
+$ErrorActionPreference = "Stop"
+
+try {
+    # Get IMDSv2 token
+    $token = Invoke-RestMethod `
+        -Method PUT `
+        -Uri "http://169.254.169.254/latest/api/token" `
+        -Headers @{
+            "X-aws-ec2-metadata-token-ttl-seconds" = "21600"
+        }
+
+    # Get instance type using the token
+    $instanceType = Invoke-RestMethod `
+        -Method GET `
+        -Uri "http://169.254.169.254/latest/meta-data/instance-type" `
+        -Headers @{
+            "X-aws-ec2-metadata-token" = $token
+        }
+
+    Write-Output "Instance Type: $instanceType"
+
+    # Ask AWS for GPU information
+    $gpuInfo = aws ec2 describe-instance-types `
+        --instance-types $instanceType `
+        --query "InstanceTypes[0].GpuInfo" `
+        --output json
+
+    $gpuObject = $gpuInfo | ConvertFrom-Json
+
+    if ($null -ne $gpuObject -and
+        $null -ne $gpuObject.Gpus -and
+        $gpuObject.Gpus.Count -gt 0) {
+
+        Write-Output "GPU: True"
+
+        foreach ($gpu in $gpuObject.Gpus) {
+            Write-Output "GPU Name: $($gpu.Name)"
+            Write-Output "Manufacturer: $($gpu.Manufacturer)"
+            Write-Output "Count: $($gpu.Count)"
+            Write-Output "Memory: $($gpu.MemoryInfo.SizeInMiB) MiB"
+        }
+
+        exit 0
+    }
+    else {
+        Write-Output "GPU: False"
+        exit 1
+    }
+}
+catch {
+    Write-Error "Failed: $($_.Exception.Message)"
+    exit 2
+}
