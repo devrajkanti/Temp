@@ -1,0 +1,413 @@
+My recommendation: GNOME Remote Desktop with RDP
+For your specific requirement, I recommend testing Ubuntu's built-in GNOME Remote Desktop RDP server, without XRDP, on a single non-production Ubuntu Workbench.
+
+Ubuntu's newer desktop releases support RDP through gnome-remote-desktop, and Microsoft's built-in mstsc.exe can connect to it. 
+Ubuntu on AWS documentation+1
+
+Windows client
+
+Remote Desktop Connection (mstsc.exe)
+
+
+RDP over TCP 3389
+
+Ubuntu EC2 / RES Workbench
+
+GNOME Remote Desktop → GNOME desktop session
+
+
+
+Important limitation: RDP compatibility does not guarantee better performance than your existing DCV setup. GNOME Remote Desktop is also not a drop-in replacement for the RES-managed desktop session, so session management and Active Directory authentication need to be validated.
+Compatibility check before implementation
+Your existing Workbench setup matters here:
+Ubuntu environment	Recommendation
+Ubuntu 22.04	Do not assume GNOME Remote Desktop provides a supported, drop-in headless RDP login configuration. Validate the exact package and session mode first.
+Ubuntu 24.04	Built-in RDP is available, but Canonical's documented EC2 setup uses XRDP for this release. Test GNOME Remote Desktop separately before adopting it. 
+Ubuntu on AWS documentation+1
+Ubuntu 26.04	Canonical documents built-in system-level RDP support without XRDP. This is a different OS version and should not be introduced into your existing Workbench fleet just to obtain RDP. 
+Ubuntu on AWS documentation
+
+Suggested proof of concept
+1. Select one non-production Workbench or a test instance with the same Ubuntu version and GPU configuration.
+2. Confirm the installed GNOME, GDM, and gnome-remote-desktop versions.
+3. Validate RDP login, desktop-session isolation, and AD authentication.
+4. Compare keyboard/mouse latency, screen updates, CPU/GPU utilization, and application responsiveness against DCV under the same workload.
+5. Restrict TCP 3389 to your private network or approved VPN, and do not expose it publicly.
+I would not deploy GNOME Remote Desktop across your RES fleet yet. Its RDP capability is real, but compatibility with your existing RES-managed sessions is the key unresolved issue.
+
+If you share whether your current Ubuntu Workbenches use Ubuntu 22.04 or 24.04, I can give you a version-specific proof-of-concept procedure that avoids XRDP.
+
+
+
+
+
+
+
+
+
+
+
+This might also interest you.
+
+
+Ad
+Ad options
+
+
+
+Learn more
+
+
+
+
+
+
+
+
+
+Ads do not influence the answers you get from ChatGPT. Your chats stay private. Learn about ads and personalization
+
+
+
+
+
+
+
+Ohk, I want to try GNOME, can you please give detailed steps to do
+
+
+
+
+
+
+
+
+
+
+
+
+Worked for 18s
+Planned remote setup
+
+
+Searched 6 websites
+
+
+
+
+
+
+
+
+
+
+
+
+
+I'll give you a practical, step-by-step proof of concept for your existing AWS RES Ubuntu Workbench, using Windows mstsc.exe and without installing XRDP.
+
+The steps below use GNOME Remote Desktop's Remote Login mode, which is more suitable for a cloud Workbench than ordinary desktop sharing because it can provide a login screen without requiring an already active desktop session. GNOME documents this mode for RDP, with GDM managing the graphical login. 
+GitHub+1
+
+
+Before starting: confirm the Ubuntu version. The configuration differs substantially between Ubuntu releases, and the GNOME Remote Desktop package must support Remote Login mode.
+Step 1 — Check the existing Workbench
+Connect through your existing SSH or SSM method and run:
+cat /etc/os-release
+echo "Desktop: $XDG_CURRENT_DESKTOP"
+echo "Session: $XDG_SESSION_TYPE"
+
+dpkg -l | grep -E 'gnome-shell|gdm3|gnome-remote-desktop|ubuntu-desktop'
+
+
+Also check whether XRDP is already installed and whether port 3389 is in use:
+dpkg -l | grep xrdp
+sudo ss -lntp | grep ':3389'
+
+
+Save the output. Do not remove or stop any existing service yet.
+Step 2 — Confirm the Ubuntu version supports your intended setup
+The distinction is important:
+- Ubuntu 24.04 LTS or later with GNOME: proceed with the Remote Login proof of concept.
+- Ubuntu 22.04 LTS: do not assume the built-in GNOME RDP server supports the headless Remote Login configuration you need. Its documented RDP functionality is different. 
+  GitHub+1
+If your Workbench is Ubuntu 22.04, use a cloned test AMI with Ubuntu 24.04 or later for this experiment rather than changing a production Workbench.
+Step 3 — Install the required GNOME packages
+Only do this on your test instance if it does not already have the GNOME desktop and GDM installed.
+sudo apt update
+sudo apt install -y ubuntu-desktop gdm3 gnome-remote-desktop
+
+
+This can install many packages and change the graphical login configuration. Review the proposed package changes before confirming. If your custom AMI already has a desktop environment, check the installed packages first instead of reinstalling it.
+
+Check the service account and available commands:
+getent passwd gnome-remote-desktop
+command -v grdctl
+grdctl --help
+grdctl --system --help
+
+
+If the gnome-remote-desktop account or grdctl is missing, stop and investigate the package installation before proceeding.
+Step 4 — Generate a TLS certificate for RDP
+GNOME Remote Desktop uses TLS certificates for RDP connections. For this proof of concept, generate a self-signed certificate under the dedicated service account. 
+GitHub
+
+
+Run:
+sudo -u gnome-remote-desktop sh -c '
+set -e
+mkdir -p ~/.local/share/gnome-remote-desktop
+chmod 700 ~/.local/share/gnome-remote-desktop
+
+openssl req -x509 -newkey rsa:3072 -nodes \
+  -keyout ~/.local/share/gnome-remote-desktop/tls.key \
+  -out ~/.local/share/gnome-remote-desktop/tls.crt \
+  -days 365 \
+  -subj "/CN=$(hostname -f)"
+
+chmod 600 ~/.local/share/gnome-remote-desktop/tls.key
+chmod 644 ~/.local/share/gnome-remote-desktop/tls.crt
+'
+
+
+Verify that the files exist:
+sudo ls -l \
+  /var/lib/gnome-remote-desktop/.local/share/gnome-remote-desktop/
+
+
+The last path assumes the service account's home directory is /var/lib/gnome-remote-desktop. Verify the actual home directory using:
+getent passwd gnome-remote-desktop
+
+
+If its home directory differs, use the actual path in subsequent commands.
+Step 5 — Configure the system-level RDP service
+Set the certificate paths, configure RDP credentials, and enable the RDP backend.
+
+First, set the certificate paths, replacing the paths below if the service account has a different home directory:
+sudo grdctl --system rdp set-tls-key \
+  /var/lib/gnome-remote-desktop/.local/share/gnome-remote-desktop/tls.key
+
+sudo grdctl --system rdp set-tls-cert \
+  /var/lib/gnome-remote-desktop/.local/share/gnome-remote-desktop/tls.crt
+
+
+Next, configure the RDP gateway/login credentials:
+sudo grdctl --system rdp set-credentials
+
+
+Follow the prompts for the username and password. Use a dedicated test credential, not a personal or domain password.
+
+These credentials are used to reach the remote login screen; they are not necessarily the same as the Linux or AD credentials used to log in to the desktop.
+
+Enable the RDP backend:
+sudo grdctl --system rdp enable
+
+
+These are the system-level configuration commands documented by GNOME. 
+GitHub+1
+
+Step 6 — Enable the services
+Run:
+sudo systemctl enable --now gdm.service
+sudo systemctl enable --now gnome-remote-desktop.service
+
+
+Check their status:
+sudo systemctl --no-pager --full status gdm.service
+sudo systemctl --no-pager --full status gnome-remote-desktop.service
+
+sudo grdctl --system status
+sudo ss -lntp | grep ':3389'
+
+
+Expected result: the services should be running, and an RDP listener should be available on the configured port (normally TCP 3389).
+
+If the services fail, inspect their logs:
+sudo journalctl -u gdm.service -n 100 --no-pager
+sudo journalctl -u gnome-remote-desktop.service -n 100 --no-pager
+
+
+Do not proceed to network configuration until the service starts successfully.
+Step 7 — Configure the AWS security group
+In the AWS console:
+1. Open EC2 → Instances.
+2. Select the test Ubuntu instance.
+3. Open its Security tab and select the associated security group.
+4. Add an inbound rule:
+   - Type: Custom TCP
+   - Port: 3389
+   - Source: your approved VPN CIDR or authorized client IP range
+5. Save the rule.
+Do not allow inbound TCP 3389 from 0.0.0.0/0. If you use an instance in a private subnet, connect through your approved corporate network, VPN, or other private access path.
+
+If Ubuntu's UFW firewall is enabled, check it with:
+sudo ufw status
+
+
+Only if UFW is active and your security policy permits it, add a rule restricted to the authorized client range:
+sudo ufw allow from <AUTHORIZED_CIDR> to any port 3389 proto tcp
+
+
+Replace <AUTHORIZED_CIDR> with your actual authorized IP range.
+Step 8 — Connect using mstsc.exe
+From your Windows machine:
+1. Press Win + R.
+2. Enter mstsc.exe.
+3. Enter the private IP address or DNS name of your test Ubuntu EC2 instance.
+4. Connect.
+5. If prompted, enter the RDP credentials configured in Step 5.
+6. Once the GNOME login screen appears, sign in with a Linux account that is permitted to log in through GDM. Test your AD account only after confirming that GDM and PAM are configured for your existing AD/SSSD setup.
+The login process should be:
+Windows mstsc.exe
+
+Connect to EC2:3389
+
+GNOME Remote Login
+
+Authenticate to reach the login screen
+
+GDM login
+
+Authenticate as the Linux or configured AD user
+
+Ubuntu graphical desktop
+
+
+The first authentication is the system-wide RDP credential; the second is the user's desktop-login credential. 
+GitHub+1
+
+Step 9 — Validate functionality and performance
+Before deciding whether this can replace DCV for any users, test the following:
+Test	What to verify
+Initial connection	Login screen appears consistently
+AD authentication	Domain users can log in using the expected credentials
+Session isolation	Different users do not share an unintended desktop session
+Application launch	Your actual simulation, labelling, and VS Code workflows work
+Keyboard and mouse	No unusual input delay
+Screen updates	Scrolling, window movement, and rendering remain responsive
+Disconnect and reconnect	Session behaviour is acceptable and does not lose work unexpectedly
+Reboot	RDP becomes available again after a reboot
+
+Run the same workload through DCV and GNOME RDP under comparable conditions. Record connection latency, CPU/GPU usage, and any input or display freezes.
+Troubleshooting
+RDP connection is refused
+
+Check the listener, service logs, security group, subnet routing, and UFW rules.
+sudo ss -lntp | grep ':3389'
+sudo journalctl -u gnome-remote-desktop.service -n 100 --no-pager
+
+
+
+Connection succeeds, but no login screen appears
+
+Check whether the installed GNOME Remote Desktop package supports system-level Remote Login, whether GDM is running, and whether the system RDP backend is enabled.
+
+Linux login works, but AD login fails
+
+Check SSSD, PAM, GDM, and the existing domain-login configuration. A working SSH login does not by itself prove that graphical login is configured correctly.
+
+The desktop opens but performance is poor
+
+Check the graphical session, GPU acceleration, display resolution, and application workload. GNOME RDP may not improve performance compared with DCV.
+
+
+One important check before you run these commands
+I would like to confirm one detail because your existing RES Workbenches use a custom Ubuntu AMI.
+
+What Ubuntu version does your current RES Workbench run?
+Ubuntu version
+
+Ubuntu 22.04 LTS
+
+Ubuntu 24.04 LTS
+
+Ubuntu 26.04 LTS
+
+Not sure
+
+
+Does the instance already have a graphical desktop environment installed?
+
+Yes, GNOME desktop is installed
+
+No, it is a minimal/server installation
+
+Not sure
+
+Give me the correct steps for my Workbench
+I recommend confirming these details before proceeding with the installation, particularly if the instance is based on Ubuntu 22.04.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+My AWS RES Ubuntu Workbench uses Ubuntu 22.04 LTS. GNOME desktop status: unknown. Give me the correct GNOME Remote Desktop system-level RDP setup for mstsc.exe, without XRDP, preserving RES and AD/SSSD configuration.
+
+
+
+
+
+
+
+
+
+
+
+
+
+Important correction for Ubuntu 22.04
+The official Ubuntu remote-desktop test plan confirms that Remote Login using GNOME's system-level RDP service is supported on Ubuntu 24.04 LTS and later, not Ubuntu 22.04 LTS. Ubuntu 22.04's GNOME 42 supports RDP for sharing an existing desktop, which is a different mode. 
+Ubuntu project documentation+1
+
+
+Therefore, the earlier grdctl --system steps should not be applied to your Ubuntu 22.04 Workbench as if they were supported. Installing gnome-remote-desktop on 22.04 does not automatically provide the system-level Remote Login functionality you need.
+
+For your requirements, I recommend this safe path:
+1. Inspect the existing Ubuntu 22.04 Workbench without changing it.
+2. If you require system-level GNOME Remote Login, test it on a separate Ubuntu 24.04 LTS clone or test Workbench.
+3. Preserve the existing RES, AD/SSSD, DCV and SSM configuration while validating the new desktop access method.
+Step 1 — Inspect your Ubuntu 22.04 Workbench
+Run these commands through SSM or SSH. They are read-only and will not modify the Workbench.
+cat /etc/os-release
+
+dpkg-query -W -f='${binary:Package} ${Version}\n' \
+  gnome-shell gdm3 gnome-session ubuntu-desktop \
+  gnome-remote-desktop 2>/dev/null
+
+systemctl is-active gdm3
+systemctl is-active gnome-remote-desktop
+systemctl is-active sssd
+
+dpkg -l | grep -E 'xrdp|gnome-remote-desktop'
+sudo ss -lntp | grep ':3389' || true
+
+
+These results tell us whether a desktop environment is installed, whether GDM and the GNOME remote desktop service are available, and whether another service already uses port 3389.
+Step 2 — Check the result
+Finding	Next step
+GNOME desktop and GDM are installed	Check the installed GNOME Remote Desktop capabilities before making changes.
+Desktop packages are missing	Do not install ubuntu-desktop on the existing RES Workbench yet; test on a cloned instance.
+grdctl --system is unsupported	Do not try to work around this by manually adding newer packages to the production AMI.
+XRDP or another service uses port 3389	Leave it untouched until you have a tested migration plan.
+
+Ubuntu's documented RDP Remote Login workflow is for Ubuntu 24.04 and later, while Ubuntu 22.04 supports the older desktop-sharing workflow. 
+Ubuntu project documentation+1
+
+Step 3 — Choose the implementation path
+For your requirement—mstsc.exe, no XRDP, and preserving RES and AD/SSSD—the practical options are:
+- Recommended: create a separate Ubuntu 24.04 test Workbench and validate system-level GNOME RDP there.
+- If Ubuntu 22.04 is mandatory: investigate whether its existing desktop session can support GNOME RDP sharing. This is not equivalent to headless Remote Login and may not meet your Workbench session requirements.
+I would not provide commands that install or replace GNOME components on your current custom AMI until we know what is installed. That could disrupt RES's existing desktop/session management or its NVIDIA graphics stack.
+
+Please share the output from Step 1. I can then identify the supported capabilities of your current installation and recommend the safest next step without changing your production Workbench.
